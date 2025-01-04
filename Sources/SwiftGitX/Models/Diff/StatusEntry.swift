@@ -107,6 +107,8 @@ public struct StatusEntry: LibGit2RawRepresentable {
     }
 }
 
+extension StatusEntry.Status: Sendable {}
+
 private extension StatusEntry.Status {
     // We use this instead of direct dictionary because this makes sure the result is ordered.
     static let statusMapping: [(key: StatusEntry.Status, value: git_status_t)] = [

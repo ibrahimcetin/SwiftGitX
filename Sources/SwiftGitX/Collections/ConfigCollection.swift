@@ -3,16 +3,25 @@ import libgit2
 // ? Should we use actor?
 /// A collection of configurations and their operations.
 public struct ConfigCollection {
-    private let repositoryPointer: OpaquePointer?
+    private var repositoryPointer: OpaquePointer? {
+        get {
+            repositoryPointerProtector.read { $0 }
+        }
+        set {
+            repositoryPointerProtector.write(newValue)
+        }
+    }
+
+    private let repositoryPointerProtector: Protected<OpaquePointer?>
 
     /// Init for repository configurations.
     init(repositoryPointer: OpaquePointer) {
-        self.repositoryPointer = repositoryPointer
+        self.repositoryPointerProtector = Protected(repositoryPointer)
     }
 
     /// Init for global configurations.
     init() {
-        repositoryPointer = nil
+        self.repositoryPointerProtector = Protected(nil)
     }
 
     /// The default branch name of the repository

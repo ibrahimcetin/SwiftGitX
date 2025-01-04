@@ -22,3 +22,5 @@ public struct CloneOptions {
         return options
     }
 }
+
+extension CloneOptions: Sendable {}

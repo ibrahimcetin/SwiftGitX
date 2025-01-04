@@ -18,10 +18,19 @@ public enum IndexError: Error {
 
 /// A collection of index operations.
 struct IndexCollection {
-    private let repositoryPointer: OpaquePointer
+    private var repositoryPointer: OpaquePointer {
+        get {
+            repositoryPointerProtector.read { $0 }
+        }
+        set {
+            repositoryPointerProtector.write(newValue)
+        }
+    }
+
+    private let repositoryPointerProtector: Protected<OpaquePointer>
 
     init(repositoryPointer: OpaquePointer) {
-        self.repositoryPointer = repositoryPointer
+        self.repositoryPointerProtector = Protected(repositoryPointer)
     }
 
     /// The error message from the last failed operation.
