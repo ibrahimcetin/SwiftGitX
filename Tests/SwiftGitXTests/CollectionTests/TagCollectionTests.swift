@@ -228,7 +228,8 @@ class TagCollectionTests: SwiftGitXTestCase {
 
         // Get the first blob from the commit
         let blob: Blob = commit.tree.entries.compactMap {
-            try? repository.show(id: $0.id)
+            let this: Blob? = try? repository.show(id: $0.id)
+            return this
         }.first!
 
         // Create a new tag
