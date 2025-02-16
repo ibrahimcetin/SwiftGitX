@@ -10,10 +10,19 @@ public enum RemoteCollectionError: Error, Equatable {
 
 /// A collection of remotes and their operations.
 public struct RemoteCollection: Sequence {
-    private let repositoryPointer: OpaquePointer
+    private var repositoryPointer: OpaquePointer {
+        get {
+            repositoryPointerProtector.read { $0 }
+        }
+        set {
+            repositoryPointerProtector.write(newValue)
+        }
+    }
+
+    private let repositoryPointerProtector: Protected<OpaquePointer>
 
     init(repositoryPointer: OpaquePointer) {
-        self.repositoryPointer = repositoryPointer
+        self.repositoryPointerProtector = Protected(repositoryPointer)
     }
 
     // * I am not sure calling `git_error_last()` from a computed property is safe.

@@ -77,3 +77,5 @@ public extension OID {
         withUnsafeBytes(of: raw.id) { hasher.combine(bytes: $0) }
     }
 }
+
+extension OID: Sendable {}
