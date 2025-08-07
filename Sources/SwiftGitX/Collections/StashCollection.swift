@@ -11,10 +11,19 @@ public enum StashCollectionError: Error, Equatable {
 
 /// A collection of stashes and their operations.
 public struct StashCollection: Sequence {
-    private let repositoryPointer: OpaquePointer
+    private var repositoryPointer: OpaquePointer {
+        get {
+            repositoryPointerProtector.read { $0 }
+        }
+        set {
+            repositoryPointerProtector.write(newValue)
+        }
+    }
+
+    private let repositoryPointerProtector: Protected<OpaquePointer>
 
     init(repositoryPointer: OpaquePointer) {
-        self.repositoryPointer = repositoryPointer
+        self.repositoryPointerProtector = Protected(repositoryPointer)
     }
 
     private var errorMessage: String {
