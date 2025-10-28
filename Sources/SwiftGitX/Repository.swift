@@ -43,11 +43,20 @@ public enum RepositoryError: Error {
 /// A representation of a Git repository.
 public final class Repository {
     /// The libgit2 pointer of the repository.
-    private let pointer: OpaquePointer
+    private var pointer: OpaquePointer {
+        get {
+            pointerProtector.read { $0 }
+        }
+        set {
+            pointerProtector.write(newValue)
+        }
+    }
+    /// Wrapper layer for safely operate pointer.
+    private let pointerProtector: Protected<OpaquePointer>
 
     /// Initialize a new repository with the specified libgit2 pointer.
     private init(pointer: OpaquePointer) {
-        self.pointer = pointer
+        self.pointerProtector = Protected(pointer)
     }
 
     /// Open or create a repository at the specified path.
@@ -68,7 +77,7 @@ public final class Repository {
         let statusOpen = git_repository_open(&pointer, path.path)
 
         if let pointer, statusOpen == GIT_OK.rawValue {
-            self.pointer = pointer
+            self.pointerProtector = Protected(pointer)
         } else if createIfNotExists {
             // If the repository does not exist, create a new one
             let statusCreate = git_repository_init(&pointer, path.path, 0)
@@ -78,7 +87,7 @@ public final class Repository {
                 throw RepositoryError.failedToCreate(errorMessage)
             }
 
-            self.pointer = pointer
+            self.pointerProtector = Protected(pointer)
         } else {
             throw RepositoryError.failedToOpen("Repository not found at \(path.path)")
         }
@@ -111,7 +120,7 @@ extension Repository: Codable, Equatable, Hashable {
         hasher.combine(path)
     }
 }
-
+extension Repository: Sendable {}
 // MARK: - Repository properties
 
 public extension Repository {
