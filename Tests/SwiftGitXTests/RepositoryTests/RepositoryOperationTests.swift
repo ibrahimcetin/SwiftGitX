@@ -46,6 +46,36 @@ final class RepositoryOperationTests: SwiftGitXTestCase {
         XCTAssertEqual(commit, headCommit)
     }
 
+    func testEmptyCommit() throws {
+        // Create a new repository at the temporary directory
+        let repository = Repository.mock(named: "test-empty-commit", in: Self.directory)
+
+        // Create initial commit
+        try repository.mockCommit(message: "Initial commit")
+
+        // Verify that committing with no changes fails by default
+        XCTAssertThrowsError(try repository.commit(message: "Empty commit without option")) { error in
+            // Expect a failedToCommit error
+            if case RepositoryError.failedToCommit = error {
+                // Expected error
+            } else {
+                XCTFail("Expected failedToCommit error, got \(error)")
+            }
+        }
+
+        // Verify that committing with allowEmpty option succeeds
+        let emptyCommit = try repository.commit(message: "Empty commit with option", options: .allowEmpty)
+
+        // Get the HEAD commit
+        let headCommit = try XCTUnwrap(repository.HEAD.target as? Commit)
+
+        // Check if the HEAD commit is the same as the created empty commit
+        XCTAssertEqual(emptyCommit, headCommit)
+
+        // Verify the commit message
+        XCTAssertEqual(emptyCommit.message, "Empty commit with option")
+    }
+
     func testReset() throws {
         // Create a new repository at the temporary directory
         let repository = Repository.mock(named: "test-reset", in: Self.directory)

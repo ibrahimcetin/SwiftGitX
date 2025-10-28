@@ -503,7 +503,9 @@ public extension Repository {
 public extension Repository {
     /// Create a new commit containing the current contents of the index.
     ///
-    /// - Parameter message: The commit message.
+    /// - Parameters:
+    ///   - message: The commit message.
+    ///   - options: The options to use when creating the commit.
     ///
     /// - Returns: The created commit.
     ///
@@ -511,15 +513,16 @@ public extension Repository {
     ///
     /// This method uses the default author and committer information.
     @discardableResult
-    func commit(message: String) throws -> Commit {
+    func commit(message: String, options: CommitOptions = .default) throws -> Commit {
         // Create a new commit from the index
         var oid = git_oid()
+        var gitOptions = options.gitCommitCreateOptions
 
         let status = git_commit_create_from_stage(
             &oid,
             pointer,
             message,
-            nil
+            &gitOptions
         )
 
         guard status == GIT_OK.rawValue else {
