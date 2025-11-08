@@ -1,4 +1,7 @@
 # SwiftGitX
+[![CI](https://github.com/ibrahimcetin/SwiftGitX/actions/workflows/swift.yml/badge.svg)](https://github.com/ibrahimcetin/SwiftGitX/actions/workflows/swift.yml)
+[![](https://img.shields.io/endpoint?url=https%3A%2F%2Fswiftpackageindex.com%2Fapi%2Fpackages%2Fibrahimcetin%2FSwiftGitX%2Fbadge%3Ftype%3Dswift-versions)](https://swiftpackageindex.com/ibrahimcetin/SwiftGitX)
+[![](https://img.shields.io/endpoint?url=https%3A%2F%2Fswiftpackageindex.com%2Fapi%2Fpackages%2Fibrahimcetin%2FSwiftGitX%2Fbadge%3Ftype%3Dplatforms)](https://swiftpackageindex.com/ibrahimcetin/SwiftGitX)
 
 Welcome to SwiftGitX! 🎉
 
