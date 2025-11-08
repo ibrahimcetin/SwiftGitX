@@ -46,11 +46,10 @@ dependencies: [
 
 ## Documentation
 
-You can access the documentation in three ways:
+The documentation for `releases` and `main` are available here:
 
-- **Online Documentation** – Based on the most recent tagged release: [View here](https://ibrahimcetin.github.io/SwiftGitX/documentation/swiftgitx/).
-- **Xcode Documetation** - Thanks to [Swift-Docc](https://www.swift.org/documentation/docc/), you can access everything seamlessly in Xcode.
-- **Upstream Documentation** – Reflecting the latest changes from the main branch: [View here](https://swiftpackageindex.com/ibrahimcetin/SwiftGitX/main/documentation/swiftgitx).
+* [0.x.x](https://swiftpackageindex.com/ibrahimcetin/SwiftGitX/~/documentation/SwiftGitX)
+* [`main`](https://swiftpackageindex.com/ibrahimcetin/SwiftGitX/main/documentation/SwiftGitX)
 
 ## Building and Testing
 
