@@ -94,8 +94,6 @@ public struct Patch: Equatable, Hashable {
             self.lines = lines
         }
 
-        // swiftlint:disable nesting
-
         /// A line represents a change in a file.
         public struct Line: Equatable, Hashable {
             /// The type of the line in the hunk.

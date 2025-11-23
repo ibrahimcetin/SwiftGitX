@@ -1,4 +1,0 @@
-excluded: # paths to ignore during linting. Takes precedence over `included`.
-  - Pods
-  - R.generated.swift
-  - .build # Where Swift Package Manager checks out dependency sources

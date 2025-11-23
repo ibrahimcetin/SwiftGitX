@@ -281,7 +281,6 @@ final class RepositoryTests: SwiftGitXTestCase {
         let decodedRepository = try JSONDecoder().decode(Repository.self, from: data)
 
         // Check if the decoded repository HEAD is the same as the original repository HEAD
-        // swiftlint:disable:next force_cast
         try XCTAssertEqual(repository.HEAD as! Branch, decodedRepository.HEAD as! Branch)
     }
 
@@ -296,7 +295,6 @@ final class RepositoryTests: SwiftGitXTestCase {
         let anotherRepository = try Repository(at: repository.path)
 
         // Check if the repository HEADs are the same
-        // swiftlint:disable:next force_cast
         try XCTAssertEqual(repository.HEAD as! Branch, anotherRepository.HEAD as! Branch)
 
         // Check if the repositories are equal
@@ -314,7 +312,6 @@ final class RepositoryTests: SwiftGitXTestCase {
         let anotherRepository = try Repository(at: repository.path)
 
         // Check if the repository HEADs are the same
-        // swiftlint:disable:next force_cast
         try XCTAssertEqual(repository.HEAD as! Branch, anotherRepository.HEAD as! Branch)
 
         // Check if the repositories have the same hash value
