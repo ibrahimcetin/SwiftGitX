@@ -62,11 +62,12 @@ public struct ReferenceCollection: Sequence {
         var referenceIterator: UnsafeMutablePointer<git_reference_iterator>?
         defer { git_reference_iterator_free(referenceIterator) }
 
-        let status = if let glob {
-            git_reference_iterator_glob_new(&referenceIterator, repositoryPointer, glob)
-        } else {
-            git_reference_iterator_new(&referenceIterator, repositoryPointer)
-        }
+        let status =
+            if let glob {
+                git_reference_iterator_glob_new(&referenceIterator, repositoryPointer, glob)
+            } else {
+                git_reference_iterator_new(&referenceIterator, repositoryPointer)
+            }
 
         guard status == GIT_OK.rawValue else {
             throw ReferenceCollectionError.failedToList(errorMessage)

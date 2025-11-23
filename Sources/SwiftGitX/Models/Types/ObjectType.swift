@@ -17,8 +17,8 @@ public enum ObjectType: LibGit2RawRepresentable {
     }
 }
 
-private extension ObjectType {
-    static let objectTypeMapping: [ObjectType: git_object_t] = [
+extension ObjectType {
+    fileprivate static let objectTypeMapping: [ObjectType: git_object_t] = [
         .any: GIT_OBJECT_ANY,
         .invalid: GIT_OBJECT_INVALID,
         .commit: GIT_OBJECT_COMMIT,

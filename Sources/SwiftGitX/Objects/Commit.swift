@@ -47,7 +47,7 @@ public struct Commit: Object {
             var parents = [Commit]()
             let parentCount = git_commit_parentcount(pointer)
 
-            for index in 0 ..< parentCount {
+            for index in 0..<parentCount {
                 var parentPointer: OpaquePointer?
                 defer { git_commit_free(parentPointer) }
 
@@ -88,8 +88,8 @@ public struct Commit: Object {
         let treeStatus = git_commit_tree(&tree, pointer)
 
         guard let id, let author = author?.pointee, let committer = committer?.pointee, let message, let summary,
-              let tree, let repositoryPointer,
-              treeStatus == GIT_OK.rawValue
+            let tree, let repositoryPointer,
+            treeStatus == GIT_OK.rawValue
         else {
             let errorMessage = String(cString: git_error_last().pointee.message)
             throw CommitError.invalid(errorMessage)
@@ -108,16 +108,16 @@ public struct Commit: Object {
     }
 }
 
-public extension Commit {
+extension Commit {
     // To ignore repositoryPointer
-    static func == (lhs: Commit, rhs: Commit) -> Bool {
-        lhs.id == rhs.id &&
-            lhs.author == rhs.author &&
-            lhs.committer == rhs.committer &&
-            lhs.message == rhs.message &&
-            lhs.summary == rhs.summary &&
-            lhs.body == rhs.body &&
-            lhs.date == rhs.date &&
-            lhs.tree == rhs.tree
+    public static func == (lhs: Commit, rhs: Commit) -> Bool {
+        lhs.id == rhs.id
+            && lhs.author == rhs.author
+            && lhs.committer == rhs.committer
+            && lhs.message == rhs.message
+            && lhs.summary == rhs.summary
+            && lhs.body == rhs.body
+            && lhs.date == rhs.date
+            && lhs.tree == rhs.tree
     }
 }

@@ -56,7 +56,7 @@ public struct OID: LibGit2RawRepresentable {
     private func hex(length: Int) -> String {
         var oid = raw
 
-        let bufferLength = length + 1 // +1 for \0 terminator
+        let bufferLength = length + 1  // +1 for \0 terminator
         var buffer = [Int8](repeating: 0, count: bufferLength)
 
         git_oid_tostr(&buffer, bufferLength, &oid)
@@ -65,15 +65,15 @@ public struct OID: LibGit2RawRepresentable {
     }
 }
 
-public extension OID {
-    static func == (lhs: OID, rhs: OID) -> Bool {
+extension OID {
+    public static func == (lhs: OID, rhs: OID) -> Bool {
         var left = lhs.raw
         var right = rhs.raw
 
         return git_oid_cmp(&left, &right) == 0
     }
 
-    func hash(into hasher: inout Hasher) {
+    public func hash(into hasher: inout Hasher) {
         withUnsafeBytes(of: raw.id) { hasher.combine(bytes: $0) }
     }
 }

@@ -37,7 +37,7 @@ public struct Tree: Object {
         // Get all the entries in the tree
         var entries = [Entry]()
 
-        for index in 0 ..< entryCount {
+        for index in 0..<entryCount {
             let entryPointer = git_tree_entry_byindex(pointer, index)
 
             guard let entryPointer else {
@@ -53,10 +53,10 @@ public struct Tree: Object {
     }
 }
 
-public extension Tree {
+extension Tree {
     // ? Should we conform to Object?
     /// Represents an entry in a Git tree object.
-    struct Entry: Identifiable, Equatable, Hashable {
+    public struct Entry: Identifiable, Equatable, Hashable {
         /// The OID of the object pointed to by the entry
         public let id: OID
 

@@ -48,10 +48,11 @@ public struct StashCollection: Sequence {
                 return -1
             }
 
-            guard let target: Commit = try? ObjectFactory.lookupObject(
-                oid: oid,
-                repositoryPointer: context.repositoryPointer
-            )
+            guard
+                let target: Commit = try? ObjectFactory.lookupObject(
+                    oid: oid,
+                    repositoryPointer: context.repositoryPointer
+                )
             else { return -1 }
 
             let stashEntry = StashEntry(

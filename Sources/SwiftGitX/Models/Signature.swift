@@ -29,8 +29,8 @@ public struct Signature: Equatable, Hashable {
     }
 }
 
-public extension Signature {
-    static func `default`(in repositoryPointer: OpaquePointer) throws -> Signature {
+extension Signature {
+    public static func `default`(in repositoryPointer: OpaquePointer) throws -> Signature {
         var signature: UnsafeMutablePointer<git_signature>?
         defer { git_signature_free(signature) }
 

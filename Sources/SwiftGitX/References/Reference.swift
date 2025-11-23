@@ -21,12 +21,12 @@ public protocol Reference: Equatable, Hashable {
     var fullName: String { get }
 }
 
-public extension Reference {
-    static func == (lhs: Self, rhs: Self) -> Bool {
+extension Reference {
+    public static func == (lhs: Self, rhs: Self) -> Bool {
         lhs.target.id == rhs.target.id && lhs.name == rhs.name && lhs.fullName == rhs.fullName
     }
 
-    func hash(into hasher: inout Hasher) {
+    public func hash(into hasher: inout Hasher) {
         hasher.combine(target.id)
         hasher.combine(name)
         hasher.combine(fullName)

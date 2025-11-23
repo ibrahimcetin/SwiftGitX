@@ -39,11 +39,12 @@ extension Repository {
     static func mockDirectory(named name: String, in parentDirectoryName: String, create: Bool = false) -> URL {
         do {
             // Create a new directory url in the temporary directory
-            let directory = if parentDirectoryName.isEmpty {
-                Self.testsDirectory.appending(components: name)
-            } else {
-                Self.testsDirectory.appending(components: parentDirectoryName, name)
-            }
+            let directory =
+                if parentDirectoryName.isEmpty {
+                    Self.testsDirectory.appending(components: name)
+                } else {
+                    Self.testsDirectory.appending(components: parentDirectoryName, name)
+                }
 
             // Remove the directory if it already exists to create an empty repository
             if FileManager.default.fileExists(atPath: directory.path) {

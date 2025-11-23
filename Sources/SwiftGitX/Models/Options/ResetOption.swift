@@ -16,16 +16,17 @@ public enum ResetOption: LibGit2RawRepresentable {
     case hard
 
     init(raw: git_reset_t) {
-        self = switch raw {
-        case GIT_RESET_SOFT:
-            .soft
-        case GIT_RESET_MIXED:
-            .mixed
-        case GIT_RESET_HARD:
-            .hard
-        default:
-            .soft
-        }
+        self =
+            switch raw {
+            case GIT_RESET_SOFT:
+                .soft
+            case GIT_RESET_MIXED:
+                .mixed
+            case GIT_RESET_HARD:
+                .hard
+            default:
+                .soft
+            }
     }
 
     var raw: git_reset_t {

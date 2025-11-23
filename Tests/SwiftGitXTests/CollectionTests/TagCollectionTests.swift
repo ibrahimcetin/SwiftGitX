@@ -121,7 +121,7 @@ class TagCollectionTests: SwiftGitXTestCase {
         let repository = Repository.mock(named: "test-tag-iterator", in: Self.directory)
 
         // Create mock commits
-        let commits = try (0 ..< 5).map { index in
+        let commits = try (0..<5).map { index in
             try repository.mockCommit(file: repository.mockFile(named: "README-\(index).md"))
         }
 

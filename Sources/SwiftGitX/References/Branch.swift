@@ -56,16 +56,17 @@ public struct Branch: Reference {
         self.fullName = String(cString: fullName)
 
         // Set the type of the branch.
-        type = if self.fullName.hasPrefix(GitDirectoryConstants.heads) {
-            .local
-        } else if self.fullName.hasPrefix(GitDirectoryConstants.remotes) {
-            .remote
-        } else if self.fullName == "HEAD" {
-            .local
-        } else {
-            // ? Should we throw an error here?
-            throw BranchError.invalid("Invalid branch type")
-        }
+        type =
+            if self.fullName.hasPrefix(GitDirectoryConstants.heads) {
+                .local
+            } else if self.fullName.hasPrefix(GitDirectoryConstants.remotes) {
+                .remote
+            } else if self.fullName == "HEAD" {
+                .local
+            } else {
+                // ? Should we throw an error here?
+                throw BranchError.invalid("Invalid branch type")
+            }
 
         // Get the upstream branch of the branch.
         var upstreamPointer: OpaquePointer?
@@ -73,19 +74,21 @@ public struct Branch: Reference {
 
         let upstreamStatus = git_branch_upstream(&upstreamPointer, pointer)
 
-        upstream = if let upstreamPointer, upstreamStatus == GIT_OK.rawValue {
-            try Branch(pointer: upstreamPointer)
-        } else { nil }
+        upstream =
+            if let upstreamPointer, upstreamStatus == GIT_OK.rawValue {
+                try Branch(pointer: upstreamPointer)
+            } else { nil }
 
         // Get the remote of the branch.
         var remoteName = git_buf()
         defer { git_buf_free(&remoteName) }
 
-        let remoteNameStatus = if type == .local {
-            git_branch_upstream_remote(&remoteName, repositoryPointer, fullName)
-        } else {
-            git_branch_remote_name(&remoteName, repositoryPointer, fullName)
-        }
+        let remoteNameStatus =
+            if type == .local {
+                git_branch_upstream_remote(&remoteName, repositoryPointer, fullName)
+            } else {
+                git_branch_remote_name(&remoteName, repositoryPointer, fullName)
+            }
 
         if let rawRemoteName = remoteName.ptr, remoteNameStatus == GIT_OK.rawValue {
             // Look up the remote.
@@ -94,9 +97,10 @@ public struct Branch: Reference {
 
             let remoteStatus = git_remote_lookup(&remotePointer, repositoryPointer, rawRemoteName)
 
-            remote = if let remotePointer, remoteStatus == GIT_OK.rawValue {
-                try Remote(pointer: remotePointer)
-            } else { nil }
+            remote =
+                if let remotePointer, remoteStatus == GIT_OK.rawValue {
+                    try Remote(pointer: remotePointer)
+                } else { nil }
         } else {
             remote = nil
         }

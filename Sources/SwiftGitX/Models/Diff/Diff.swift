@@ -25,7 +25,7 @@ public struct Diff: Equatable, Hashable {
         let numberOfDeltas = git_diff_num_deltas(pointer)
 
         // Iterate over the deltas and append them to the array
-        for index in 0 ..< numberOfDeltas {
+        for index in 0..<numberOfDeltas {
             let deltaPointer = git_diff_get_delta(pointer, index)
 
             // If delta pointer is not nil, create a new delta
@@ -56,8 +56,8 @@ public struct Diff: Equatable, Hashable {
 
 // MARK: - Structs
 
-public extension Diff {
-    struct Delta: LibGit2RawRepresentable {
+extension Diff {
+    public struct Delta: LibGit2RawRepresentable {
         /// The type of the delta.
         public let type: DeltaType
 
@@ -93,12 +93,8 @@ public extension Diff {
         }
 
         public static func == (lhs: Diff.Delta, rhs: Diff.Delta) -> Bool {
-            lhs.type == rhs.type &&
-                lhs.oldFile == rhs.oldFile &&
-                lhs.newFile == rhs.newFile &&
-                lhs.flags == rhs.flags &&
-                lhs.similarity == rhs.similarity &&
-                lhs.numberOfFiles == rhs.numberOfFiles
+            lhs.type == rhs.type && lhs.oldFile == rhs.oldFile && lhs.newFile == rhs.newFile && lhs.flags == rhs.flags
+                && lhs.similarity == rhs.similarity && lhs.numberOfFiles == rhs.numberOfFiles
         }
 
         public func hash(into hasher: inout Hasher) {
@@ -111,7 +107,7 @@ public extension Diff {
         }
     }
 
-    struct File: LibGit2RawRepresentable {
+    public struct File: LibGit2RawRepresentable {
         /// The ID of the object.
         public let id: OID
 
@@ -140,11 +136,8 @@ public extension Diff {
         }
 
         public static func == (lhs: Diff.File, rhs: Diff.File) -> Bool {
-            lhs.id == rhs.id &&
-                lhs.path == rhs.path &&
-                lhs.size == rhs.size &&
-                lhs.flags == rhs.flags &&
-                lhs.mode == rhs.mode
+            lhs.id == rhs.id && lhs.path == rhs.path && lhs.size == rhs.size && lhs.flags == rhs.flags
+                && lhs.mode == rhs.mode
         }
 
         public func hash(into hasher: inout Hasher) {
@@ -159,9 +152,9 @@ public extension Diff {
 
 // MARK: - Enums
 
-public extension Diff {
+extension Diff {
     // Represents git_diff_flag_t enum in libgit2
-    enum Flag {
+    public enum Flag {
         /// The file is binary.
         case binary
 
@@ -205,10 +198,10 @@ public extension Diff {
     }
 }
 
-public extension Diff {
+extension Diff {
     // Represents git_delta_t enum in libgit2
     /// Represents what type of change is described by ``Delta``.
-    enum DeltaType: Int {
+    public enum DeltaType: Int {
         /// No changes
         case unmodified = 0
 

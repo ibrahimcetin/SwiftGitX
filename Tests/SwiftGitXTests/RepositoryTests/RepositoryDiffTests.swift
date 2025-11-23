@@ -309,7 +309,7 @@ final class RepositoryDiffTests: SwiftGitXTestCase {
 
         // Check the status entry properties
         XCTAssertEqual(statusEntry.status, [.workingTreeNew])
-        XCTAssertNil(statusEntry.index) // There is no index changes
+        XCTAssertNil(statusEntry.index)  // There is no index changes
 
         // Get working tree changes
         let workingTreeChanges = try XCTUnwrap(statusEntry.workingTree)
@@ -345,7 +345,7 @@ final class RepositoryDiffTests: SwiftGitXTestCase {
 
         // Check the status entry properties
         XCTAssertEqual(statusEntry.status, [.indexNew])
-        XCTAssertNil(statusEntry.workingTree) // There is no working tree changes
+        XCTAssertNil(statusEntry.workingTree)  // There is no working tree changes
         let statusEntryDiffDelta = try XCTUnwrap(statusEntry.index)
 
         // Check the status entry diff delta properties
@@ -527,7 +527,7 @@ final class RepositoryDiffTests: SwiftGitXTestCase {
 
         // Get the status of the file
         let status: StatusEntry = try XCTUnwrap(repository.status().first)
-        XCTAssertEqual(status.status, [.workingTreeNew]) // The file is untracked
+        XCTAssertEqual(status.status, [.workingTreeNew])  // The file is untracked
         let workingTreeDelta = try XCTUnwrap(status.workingTree)
 
         // Create patch from workingTree delta

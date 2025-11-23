@@ -1,6 +1,7 @@
-import libgit2
-@testable import SwiftGitX
 import XCTest
+import libgit2
+
+@testable import SwiftGitX
 
 final class ObjectTests: SwiftGitXTestCase {
     func testOID() throws {

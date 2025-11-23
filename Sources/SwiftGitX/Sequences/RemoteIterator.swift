@@ -25,10 +25,12 @@ public struct RemoteIterator: IteratorProtocol {
             let name = remoteNames[index]
 
             // Try to get the remote pointer
-            guard let remotePointer = try? ReferenceFactory.lookupRemotePointer(
-                name: name,
-                repositoryPointer: repositoryPointer
-            ) else { continue }
+            guard
+                let remotePointer = try? ReferenceFactory.lookupRemotePointer(
+                    name: name,
+                    repositoryPointer: repositoryPointer
+                )
+            else { continue }
             defer { git_remote_free(remotePointer) }
 
             // Try to create a remote from the pointer

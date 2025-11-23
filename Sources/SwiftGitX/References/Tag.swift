@@ -69,14 +69,16 @@ public struct Tag: Object, Reference {
         fullName = GitDirectoryConstants.tags + self.name
 
         // Set the tagger of the tag.
-        self.tagger = if let tagger = tagger?.pointee {
-            Signature(raw: tagger)
-        } else { nil }
+        self.tagger =
+            if let tagger = tagger?.pointee {
+                Signature(raw: tagger)
+            } else { nil }
 
         // Set the message of the tag. If the message is empty, set it to `nil`.
-        self.message = if let message, strcmp(message, "") != 0 {
-            String(cString: message)
-        } else { nil }
+        self.message =
+            if let message, strcmp(message, "") != 0 {
+                String(cString: message)
+            } else { nil }
     }
 
     /// Lightweight tag initializer

@@ -25,13 +25,15 @@ public struct StatusEntry: LibGit2RawRepresentable {
     init(raw: git_status_entry) {
         status = Status.from(raw.status.rawValue)
 
-        index = if let rawDelta = raw.head_to_index?.pointee {
-            Diff.Delta(raw: rawDelta)
-        } else { nil }
+        index =
+            if let rawDelta = raw.head_to_index?.pointee {
+                Diff.Delta(raw: rawDelta)
+            } else { nil }
 
-        workingTree = if let rawDelta = raw.index_to_workdir?.pointee {
-            Diff.Delta(raw: rawDelta)
-        } else { nil }
+        workingTree =
+            if let rawDelta = raw.index_to_workdir?.pointee {
+                Diff.Delta(raw: rawDelta)
+            } else { nil }
     }
 
     /// Represents the status of a file in the repository.
@@ -107,9 +109,9 @@ public struct StatusEntry: LibGit2RawRepresentable {
     }
 }
 
-private extension StatusEntry.Status {
+extension StatusEntry.Status {
     // We use this instead of direct dictionary because this makes sure the result is ordered.
-    static let statusMapping: [(key: StatusEntry.Status, value: git_status_t)] = [
+    fileprivate static let statusMapping: [(key: StatusEntry.Status, value: git_status_t)] = [
         (.current, GIT_STATUS_CURRENT),
 
         (.indexNew, GIT_STATUS_INDEX_NEW),

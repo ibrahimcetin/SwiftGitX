@@ -51,7 +51,7 @@ public struct BranchCollection: Sequence {
             let status = git_repository_head(&branchPointer, repositoryPointer)
 
             guard let branchPointer, status == GIT_OK.rawValue,
-                  git_reference_is_branch(branchPointer) == 1
+                git_reference_is_branch(branchPointer) == 1
             else { throw BranchCollectionError.failedToGetCurrent(errorMessage) }
 
             return try Branch(pointer: branchPointer)
@@ -125,18 +125,16 @@ public struct BranchCollection: Sequence {
         return branches
     }
 
-    /**
-     Creates a new branch with the specified name and target commit.
-
-     - Parameters:
-        - name: The name of the branch to create.
-        - target: The target commit that the branch will point to.
-        - force: If `true`, the branch will be overwritten if it already exists. Default is `false`.
-
-     - Returns: The newly created `Branch` object.
-
-     - Throws: `BranchCollectionError.failedToCreate` if the branch could not be created.
-      */
+    /// Creates a new branch with the specified name and target commit.
+    ///
+    /// - Parameters:
+    ///   - name: The name of the branch to create.
+    ///   - target: The target commit that the branch will point to.
+    ///   - force: If `true`, the branch will be overwritten if it already exists. Default is `false`.
+    ///
+    /// - Returns: The newly created `Branch` object.
+    ///
+    /// - Throws: `BranchCollectionError.failedToCreate` if the branch could not be created.
     @discardableResult
     public func create(named name: String, target: Commit, force: Bool = false) throws -> Branch {
         // Lookup the target commit

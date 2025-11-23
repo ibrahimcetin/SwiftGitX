@@ -46,7 +46,7 @@ final class StashCollectionTests: SwiftGitXTestCase {
         // Create mock commit
         try repository.mockCommit()
 
-        for index in 0 ..< 5 {
+        for index in 0..<5 {
             // Create a file
             _ = try repository.mockFile(named: "test\(index).txt", content: "Stash me!")
 
@@ -68,7 +68,7 @@ final class StashCollectionTests: SwiftGitXTestCase {
         // Create mock commit
         try repository.mockCommit()
 
-        for index in 0 ..< 5 {
+        for index in 0..<5 {
             // Create a file
             _ = try repository.mockFile(named: "test-\(index).txt", content: "Stash me!")
 
@@ -107,7 +107,7 @@ final class StashCollectionTests: SwiftGitXTestCase {
         let stashes = try repository.stash.list()
 
         // Check the stash entries
-        XCTAssertEqual(stashes.count, 1) // The stash should still exist
+        XCTAssertEqual(stashes.count, 1)  // The stash should still exist
         XCTAssertTrue(FileManager.default.fileExists(atPath: fileURL.path))
         XCTAssertEqual(try String(contentsOf: fileURL), "Stash me!")
     }
@@ -136,7 +136,7 @@ final class StashCollectionTests: SwiftGitXTestCase {
         let stashes = try repository.stash.list()
 
         // Check the stash entries
-        XCTAssertEqual(stashes.count, 0) // The stash should be removed
+        XCTAssertEqual(stashes.count, 0)  // The stash should be removed
         XCTAssertTrue(FileManager.default.fileExists(atPath: fileURL.path))
         XCTAssertEqual(try String(contentsOf: fileURL), "Stash me!")
     }

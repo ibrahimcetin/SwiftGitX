@@ -9,22 +9,23 @@ public enum FileMode: UInt32, LibGit2RawRepresentable {
     case commit = 0_160_000
 
     init(raw: git_filemode_t) {
-        self = switch raw {
-        case GIT_FILEMODE_UNREADABLE:
-            .unreadable
-        case GIT_FILEMODE_TREE:
-            .tree
-        case GIT_FILEMODE_BLOB:
-            .blob
-        case GIT_FILEMODE_BLOB_EXECUTABLE:
-            .blobExecutable
-        case GIT_FILEMODE_LINK:
-            .symlink
-        case GIT_FILEMODE_COMMIT:
-            .commit
-        default:
-            .unreadable
-        }
+        self =
+            switch raw {
+            case GIT_FILEMODE_UNREADABLE:
+                .unreadable
+            case GIT_FILEMODE_TREE:
+                .tree
+            case GIT_FILEMODE_BLOB:
+                .blob
+            case GIT_FILEMODE_BLOB_EXECUTABLE:
+                .blobExecutable
+            case GIT_FILEMODE_LINK:
+                .symlink
+            case GIT_FILEMODE_COMMIT:
+                .commit
+            default:
+                .unreadable
+            }
     }
 
     var raw: git_filemode_t {

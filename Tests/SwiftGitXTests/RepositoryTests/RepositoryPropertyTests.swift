@@ -34,11 +34,13 @@ final class RepositoryPropertyTests: SwiftGitXTestCase {
         let repositoryWorkingDirectory = try XCTUnwrap(repository.workingDirectory)
 
         // Get the path of the mock repository directory
-        let expectedDirectory = if Self.directory.isEmpty {
-            URL.temporaryDirectory.appending(components: "SwiftGitXTests", "test-working-directory/")
-        } else {
-            URL.temporaryDirectory.appending(components: "SwiftGitXTests", Self.directory, "test-working-directory/")
-        }
+        let expectedDirectory =
+            if Self.directory.isEmpty {
+                URL.temporaryDirectory.appending(components: "SwiftGitXTests", "test-working-directory/")
+            } else {
+                URL.temporaryDirectory.appending(
+                    components: "SwiftGitXTests", Self.directory, "test-working-directory/")
+            }
 
         // Check if the working directory is the same as the expected directory
         XCTAssertEqual(repositoryWorkingDirectory.resolvingSymlinksInPath(), expectedDirectory)
@@ -49,11 +51,12 @@ final class RepositoryPropertyTests: SwiftGitXTestCase {
         let repository = Repository.mock(named: "test-path", in: Self.directory)
 
         // Get the path of the mock repository directory
-        let expectedDirectory = if Self.directory.isEmpty {
-            URL.temporaryDirectory.appending(components: "SwiftGitXTests", "test-path/.git/")
-        } else {
-            URL.temporaryDirectory.appending(components: "SwiftGitXTests", Self.directory, "test-path/.git/")
-        }
+        let expectedDirectory =
+            if Self.directory.isEmpty {
+                URL.temporaryDirectory.appending(components: "SwiftGitXTests", "test-path/.git/")
+            } else {
+                URL.temporaryDirectory.appending(components: "SwiftGitXTests", Self.directory, "test-path/.git/")
+            }
 
         // Check if the path is the same as the expected directory
         XCTAssertEqual(repository.path.resolvingSymlinksInPath(), expectedDirectory)
@@ -64,11 +67,12 @@ final class RepositoryPropertyTests: SwiftGitXTestCase {
         let repository = Repository.mock(named: "test-path-bare", in: Self.directory, isBare: true)
 
         // Get the path of the mock repository directory
-        let expectedDirectory = if Self.directory.isEmpty {
-            URL.temporaryDirectory.appending(components: "SwiftGitXTests", "test-path-bare/")
-        } else {
-            URL.temporaryDirectory.appending(components: "SwiftGitXTests", Self.directory, "test-path-bare/")
-        }
+        let expectedDirectory =
+            if Self.directory.isEmpty {
+                URL.temporaryDirectory.appending(components: "SwiftGitXTests", "test-path-bare/")
+            } else {
+                URL.temporaryDirectory.appending(components: "SwiftGitXTests", Self.directory, "test-path-bare/")
+            }
 
         // Check if the path is the same as the expected directory
         XCTAssertEqual(repository.path.resolvingSymlinksInPath(), expectedDirectory)

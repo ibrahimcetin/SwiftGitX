@@ -1,5 +1,6 @@
-@testable import SwiftGitX
 import XCTest
+
+@testable import SwiftGitX
 
 final class IndexCollectionTests: SwiftGitXTestCase {
     func testIndexAddPath() throws {
@@ -15,9 +16,9 @@ final class IndexCollectionTests: SwiftGitXTestCase {
         // Verify that the file is staged
         let statusEntry = try XCTUnwrap(repository.status().first)
 
-        XCTAssertEqual(statusEntry.status, [.indexNew]) // The file is staged
+        XCTAssertEqual(statusEntry.status, [.indexNew])  // The file is staged
         XCTAssertEqual(statusEntry.index?.newFile.path, "README.md")
-        XCTAssertNil(statusEntry.workingTree) // The file is staged and not in the working tree anymore
+        XCTAssertNil(statusEntry.workingTree)  // The file is staged and not in the working tree anymore
     }
 
     func testIndexAddFile() throws {
@@ -33,9 +34,9 @@ final class IndexCollectionTests: SwiftGitXTestCase {
         // Verify that the file is staged
         let statusEntry = try XCTUnwrap(repository.status().first)
 
-        XCTAssertEqual(statusEntry.status, [.indexNew]) // The file is staged
+        XCTAssertEqual(statusEntry.status, [.indexNew])  // The file is staged
         XCTAssertEqual(statusEntry.index?.newFile.path, "README.md")
-        XCTAssertNil(statusEntry.workingTree) // The file is staged and not in the working tree anymore
+        XCTAssertNil(statusEntry.workingTree)  // The file is staged and not in the working tree anymore
     }
 
     func testIndexAddPaths() throws {
@@ -43,7 +44,7 @@ final class IndexCollectionTests: SwiftGitXTestCase {
         let repository = Repository.mock(named: "test-index-add-paths", in: Self.directory)
 
         // Create new files in the repository
-        let files = try (0 ..< 10).map { index in
+        let files = try (0..<10).map { index in
             try repository.mockFile(named: "README-\(index).md", content: "Hello, World!")
         }
 
@@ -64,7 +65,7 @@ final class IndexCollectionTests: SwiftGitXTestCase {
         let repository = Repository.mock(named: "test-index-add-files", in: Self.directory)
 
         // Create new files in the repository
-        let files = try (0 ..< 10).map { index in
+        let files = try (0..<10).map { index in
             try repository.mockFile(named: "README-\(index).md", content: "Hello, World!")
         }
 
@@ -99,7 +100,7 @@ final class IndexCollectionTests: SwiftGitXTestCase {
         let statusEntry = try XCTUnwrap(repository.status().first)
 
         XCTAssertEqual(statusEntry.status, [.workingTreeNew])
-        XCTAssertNil(statusEntry.index) // The file is not staged
+        XCTAssertNil(statusEntry.index)  // The file is not staged
     }
 
     func testIndexRemoveFile() throws {
@@ -119,7 +120,7 @@ final class IndexCollectionTests: SwiftGitXTestCase {
         let statusEntry = try XCTUnwrap(repository.status().first)
 
         XCTAssertEqual(statusEntry.status, [.workingTreeNew])
-        XCTAssertNil(statusEntry.index) // The file is not staged
+        XCTAssertNil(statusEntry.index)  // The file is not staged
     }
 
     func testIndexRemovePaths() throws {
@@ -127,7 +128,7 @@ final class IndexCollectionTests: SwiftGitXTestCase {
         let repository = Repository.mock(named: "test-index-remove-paths", in: Self.directory)
 
         // Create new files in the repository
-        let files = try (0 ..< 10).map { index in
+        let files = try (0..<10).map { index in
             try repository.mockFile(named: "README-\(index).md", content: "Hello, World!")
         }
 
@@ -150,7 +151,7 @@ final class IndexCollectionTests: SwiftGitXTestCase {
         let repository = Repository.mock(named: "test-index-remove-files", in: Self.directory)
 
         // Create new files in the repository
-        let files = try (0 ..< 10).map { index in
+        let files = try (0..<10).map { index in
             try repository.mockFile(named: "README-\(index).md", content: "Hello, World!")
         }
 
@@ -173,7 +174,7 @@ final class IndexCollectionTests: SwiftGitXTestCase {
         let repository = Repository.mock(named: "test-index-remove-all", in: Self.directory)
 
         // Create new files in the repository
-        let files = try (0 ..< 10).map { index in
+        let files = try (0..<10).map { index in
             try repository.mockFile(named: "README-\(index).md", content: "Hello, World!")
         }
 

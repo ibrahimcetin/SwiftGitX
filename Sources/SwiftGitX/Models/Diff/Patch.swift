@@ -22,7 +22,7 @@ public struct Patch: Equatable, Hashable {
 
         let numberOfHunks = git_patch_num_hunks(pointer)
 
-        for index in 0 ..< numberOfHunks {
+        for index in 0..<numberOfHunks {
             var hunkPointer: UnsafePointer<git_diff_hunk>?
             var linesCountInHunk = 0
 
@@ -35,7 +35,7 @@ public struct Patch: Equatable, Hashable {
             // Get lines
             var lines = [Hunk.Line]()
 
-            for lineIndex in 0 ..< linesCountInHunk {
+            for lineIndex in 0..<linesCountInHunk {
                 var linePointer: UnsafePointer<git_diff_line>?
                 let lineStatus = git_patch_get_line_in_hunk(&linePointer, pointer, index, lineIndex)
 
@@ -146,22 +146,23 @@ public struct Patch: Equatable, Hashable {
             case deletionEOF = "<"
 
             init(raw: git_diff_line_t) {
-                self = switch raw {
-                case GIT_DIFF_LINE_CONTEXT:
-                    .context
-                case GIT_DIFF_LINE_ADDITION:
-                    .addition
-                case GIT_DIFF_LINE_DELETION:
-                    .deletion
-                case GIT_DIFF_LINE_CONTEXT_EOFNL:
-                    .contextEOF
-                case GIT_DIFF_LINE_ADD_EOFNL:
-                    .additionEOF
-                case GIT_DIFF_LINE_DEL_EOFNL:
-                    .deletionEOF
-                default:
-                    .context
-                }
+                self =
+                    switch raw {
+                    case GIT_DIFF_LINE_CONTEXT:
+                        .context
+                    case GIT_DIFF_LINE_ADDITION:
+                        .addition
+                    case GIT_DIFF_LINE_DELETION:
+                        .deletion
+                    case GIT_DIFF_LINE_CONTEXT_EOFNL:
+                        .contextEOF
+                    case GIT_DIFF_LINE_ADD_EOFNL:
+                        .additionEOF
+                    case GIT_DIFF_LINE_DEL_EOFNL:
+                        .deletionEOF
+                    default:
+                        .context
+                    }
             }
         }
     }

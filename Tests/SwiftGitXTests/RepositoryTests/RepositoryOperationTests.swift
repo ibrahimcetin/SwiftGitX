@@ -205,7 +205,7 @@ final class RepositoryOperationTests: SwiftGitXTestCase {
 
         // Check the status of the file and the content
         let stagedFileStatus = try repository.status(file: file)
-        XCTAssertTrue(stagedFileStatus.isEmpty) // There should be no changes (all changes are restored)
+        XCTAssertTrue(stagedFileStatus.isEmpty)  // There should be no changes (all changes are restored)
         XCTAssertEqual(try String(contentsOf: file), "Welcome to SwiftGitX!\n")
 
         // Create a new file to delete (this should be deleted)
@@ -229,7 +229,7 @@ final class RepositoryOperationTests: SwiftGitXTestCase {
         let repository = Repository.mock(named: "test-log", in: Self.directory)
 
         var createdCommits = [Commit]()
-        for index in 0 ..< 10 {
+        for index in 0..<10 {
             // Create a commit
             let commit = try repository.mockCommit(
                 message: "Commit \(index)",

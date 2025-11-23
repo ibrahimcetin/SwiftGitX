@@ -41,7 +41,7 @@ public struct TagCollection: Sequence {
         }
 
         var tags = [Tag]()
-        for index in 0 ..< array.count {
+        for index in 0..<array.count {
             let tagName = String(cString: array.strings.advanced(by: index).pointee!)
 
             let tag = try get(named: tagName)
@@ -51,23 +51,21 @@ public struct TagCollection: Sequence {
         return tags
     }
 
-    /**
-     Creates a new tag.
-
-     - Parameters:
-        - name: The name of the tag.
-        - target: The target object for the tag.
-        - type: The type of the tag. Default is `.annotated`.
-        - tagger: The signature of the tagger. If not provided, the default signature in the repository will be used.
-        - message: The message associated with the tag. If not provided, an empty string will be used.
-        - force: If `true`, the tag will be overwritten if it already exists. Default is `false`.
-
-     - Returns: The created `Tag` object.
-
-     - Throws: `TagCollectionError.failedToCreate` if the tag could not be created.
-
-     - Note: If the tag already exists and `force` is `false`, an error will be thrown.
-      */
+    /// Creates a new tag.
+    ///
+    /// - Parameters:
+    ///   - name: The name of the tag.
+    ///   - target: The target object for the tag.
+    ///   - type: The type of the tag. Default is `.annotated`.
+    ///   - tagger: The signature of the tagger. If not provided, the default signature in the repository will be used.
+    ///   - message: The message associated with the tag. If not provided, an empty string will be used.
+    ///   - force: If `true`, the tag will be overwritten if it already exists. Default is `false`.
+    ///
+    /// - Returns: The created `Tag` object.
+    ///
+    /// - Throws: `TagCollectionError.failedToCreate` if the tag could not be created.
+    ///
+    /// - Note: If the tag already exists and `force` is `false`, an error will be thrown.
     @discardableResult
     public func create(
         named name: String,

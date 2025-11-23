@@ -1,5 +1,6 @@
-@testable import SwiftGitX
 import XCTest
+
+@testable import SwiftGitX
 
 final class RepositoryShowTests: SwiftGitXTestCase {
     func testShowCommit() throws {

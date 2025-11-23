@@ -60,8 +60,8 @@ public struct Remote: Equatable, Hashable {
 
 // MARK: - Remote Extension
 
-public extension Remote {
-    static func == (lhs: Remote, rhs: Remote) -> Bool {
+extension Remote {
+    public static func == (lhs: Remote, rhs: Remote) -> Bool {
         lhs.name == rhs.name && lhs.url == rhs.url
     }
 }

@@ -124,7 +124,7 @@ public struct RemoteCollection: Sequence {
             var remoteNames = [String]()
 
             // Convert raw remote names to Swift strings
-            for index in 0 ..< array.count {
+            for index in 0..<array.count {
                 guard let rawRemoteName = array.strings.advanced(by: index).pointee
                 else {
                     throw RemoteCollectionError.failedToList("Failed to get remote name at index \(index)")
