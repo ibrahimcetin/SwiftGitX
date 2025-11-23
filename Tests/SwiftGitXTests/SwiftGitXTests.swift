@@ -63,6 +63,29 @@ struct SwiftGitXTests {
         #expect(count >= 0)
     }
 
+    @Test("Test SwiftGitX Shutdown Without Calling Initialize")
+    func testSwiftGitXShutdownWithoutInitialize() async throws {
+        // Shutdown the SwiftGitX library
+        let result = #expect(throws: SwiftGitXError.self) {
+            try SwiftGitX.shutdown()
+        }
+
+        let error = try #require(result)
+
+        // Check if the error is a SwiftGitXError
+        #expect(error.code == .error)
+
+        // Note: This is a quirk of libgit2's design. When shutdown() is called before initialize(),
+        // it decrements the initialization count below 0 and returns a negative status code (error),
+        // but git_error_last() returns no actual error object because libgit2 doesn't set one for
+        // this particular case. Hence we get error code .error, but category .none and message "no error".
+        //
+        // We still throw an error because shutdown should not be called without initialize, even though
+        // the error message is uninformative. This error can be ignored if needed.
+        #expect(error.category == .none)
+        #expect(error.message == "no error")
+    }
+
     @Test("Test SwiftGitX Version")
     func testVersion() throws {
         // Get the libgit2 version

@@ -1,9 +1,11 @@
-import libgit2
+//
+//  SwiftGitX.swift
+//  SwiftGitX
+//
+//  Created by İbrahim Çetin on 23.11.2025.
+//
 
-public enum SwiftGitXError: Error {
-    case failedToInitialize(String)
-    case failedToShutdown(String)
-}
+import libgit2
 
 /// The main entry point for the SwiftGitX library.
 public enum SwiftGitX {
@@ -20,10 +22,7 @@ public enum SwiftGitX {
         // Initialize the libgit2 library
         let status = git_libgit2_init()
 
-        guard status >= 0 else {
-            let errorMessage = String(cString: git_error_last().pointee.message)
-            throw SwiftGitXError.failedToInitialize(errorMessage)
-        }
+        try SwiftGitXError.check(status)
 
         return Int(status)
     }
@@ -39,10 +38,7 @@ public enum SwiftGitX {
         // Shutdown the libgit2 library
         let status = git_libgit2_shutdown()
 
-        guard status >= 0 else {
-            let errorMessage = String(cString: git_error_last().pointee.message)
-            throw SwiftGitXError.failedToShutdown(errorMessage)
-        }
+        try SwiftGitXError.check(status)
 
         return Int(status)
     }
