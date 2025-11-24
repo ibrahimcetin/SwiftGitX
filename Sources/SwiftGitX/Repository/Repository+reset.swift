@@ -24,7 +24,7 @@ extension Repository {
     ///
     /// With specifying `resetType`, you can optionally modify index and working tree files.
     /// The default is `.soft` which does not modify index and working tree files.
-    public func reset(to commit: Commit, mode resetMode: ResetOption = .soft) throws {
+    public func reset(to commit: Commit, mode resetMode: ResetOption = .soft) throws(SwiftGitXError) {
         // Lookup the commit pointer
         let commitPointer = try ObjectFactory.lookupObjectPointer(
             oid: commit.id.raw,
@@ -36,11 +36,8 @@ extension Repository {
         // TODO: Implement checkout options
 
         // Perform the reset operation
-        let resetStatus = git_reset(pointer, commitPointer, resetMode.raw, nil)
-
-        guard resetStatus == GIT_OK.rawValue else {
-            let errorMessage = String(cString: git_error_last().pointee.message)
-            throw RepositoryError.failedToReset(errorMessage)
+        try git(operation: .reset) {
+            git_reset(pointer, commitPointer, resetMode.raw, nil)
         }
     }
 
@@ -55,7 +52,7 @@ extension Repository {
     ///
     /// This means that this method is the opposite of `add()` method.
     /// This command is equivalent to `restore` method with `.staged` option.
-    public func reset(from commit: Commit, paths: [String]) throws {
+    public func reset(from commit: Commit, paths: [String]) throws(SwiftGitXError) {
         // Lookup the commit pointer
         let headCommitPointer = try ObjectFactory.lookupObjectPointer(
             oid: commit.id.raw,
@@ -65,16 +62,12 @@ extension Repository {
         defer { git_object_free(headCommitPointer) }
 
         // Initialize the checkout options
-        let status = paths.withGitStrArray { strArray in
-            var strArray = strArray
+        var strArray = paths.gitStrArray
+        defer { git_strarray_free(&strArray) }
 
-            // Reset the index from the commit
-            return git_reset_default(pointer, headCommitPointer, &strArray)
-        }
-
-        guard status == GIT_OK.rawValue else {
-            let errorMessage = String(cString: git_error_last().pointee.message)
-            throw RepositoryError.failedToReset(errorMessage)
+        // Reset the index from the commit
+        try git(operation: .reset) {
+            git_reset_default(pointer, headCommitPointer, &strArray)
         }
     }
 
@@ -89,9 +82,9 @@ extension Repository {
     ///
     /// This means that this method is the opposite of `add()` method.
     /// This command is equivalent to `restore` method with `.staged` option.
-    public func reset(from commit: Commit, files: [URL]) throws {
-        let paths = try files.map {
-            try $0.relativePath(from: workingDirectory)
+    public func reset(from commit: Commit, files: [URL]) throws(SwiftGitXError) {
+        let paths = try files.map { (url) throws(SwiftGitXError) -> String in
+            try url.relativePath(from: workingDirectory)
         }
 
         try reset(from: commit, paths: paths)
