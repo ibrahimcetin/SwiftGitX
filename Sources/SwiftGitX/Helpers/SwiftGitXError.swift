@@ -30,7 +30,7 @@ import libgit2
 ///     git_push(remote, refspecs, options)
 /// }
 /// ```
-public func git(
+func git(
     operation: SwiftGitXError.Operation? = nil,
     _ call: () -> Int32
 ) throws(SwiftGitXError) {
@@ -58,7 +58,7 @@ public func git(
 /// ```
 ///
 /// - Important: The returned pointer must be released with appropriate `git_<type>_free` function when no longer needed.
-public func git<T>(
+func git<T>(
     operation: SwiftGitXError.Operation? = nil,
     _ call: () -> (T?, Int32)
 ) throws(SwiftGitXError) -> T {
@@ -127,7 +127,7 @@ extension SwiftGitXError {
     /// try SwiftGitXError.check(status)
     /// ```
     @inline(__always)
-    public static func check(_ status: Int32, operation: Operation? = nil) throws(SwiftGitXError) {
+    static func check(_ status: Int32, operation: Operation? = nil) throws(SwiftGitXError) {
         // If the status is less than 0, we have an error.
         guard status >= 0 else {
             throw SwiftGitXError(status: status, operation: operation)
