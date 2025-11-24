@@ -1,9 +1,12 @@
+//
+//  Tag.swift
+//  SwiftGitX
+//
+//  Created by İbrahim Çetin on 24.11.2025.
+//
+
 import Foundation
 import libgit2
-
-public enum TagError: Error {
-    case invalid(String)
-}
 
 /// A tag representation in the repository.
 public struct Tag: Object, Reference {
@@ -34,7 +37,7 @@ public struct Tag: Object, Reference {
     /// The type of the object.
     public let type: ObjectType = .tag
 
-    init(pointer: OpaquePointer) throws {
+    init(pointer: OpaquePointer) throws(SwiftGitXError) {
         // Get the id of the tag.
         let id = git_tag_id(pointer)
 
@@ -54,8 +57,7 @@ public struct Tag: Object, Reference {
         let repositoryPointer = git_tag_owner(pointer)
 
         guard let id = id?.pointee, let targetID = targetID?.pointee, let name, let repositoryPointer else {
-            let errorMessage = String(cString: git_error_last().pointee.message)
-            throw TagError.invalid(errorMessage)
+            throw SwiftGitXError(code: .error, category: .object, message: "Tag is invalid")
         }
 
         // Set the id of the tag.
