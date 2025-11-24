@@ -216,9 +216,8 @@ struct URLRelativePathTests {
 
     @Test("Handles complex real-world paths")
     func complexRealWorldPaths() throws {
-        let base = URL(fileURLWithPath: "/Users/ibrahim/Developer/Apple/1MyPojects")
-        let child = URL(
-            fileURLWithPath: "/Users/ibrahim/Developer/Apple/1MyPojects/SwiftGitX/Sources/SwiftGitX/Helpers/Extensions")
+        let base = URL(fileURLWithPath: "/Users/ibrahim/Developer/")
+        let child = URL(fileURLWithPath: "/Users/ibrahim/Developer/SwiftGitX/Sources/SwiftGitX/Helpers/Extensions")
 
         let relativePath = try child.relativePath(from: base)
         #expect(relativePath == "SwiftGitX/Sources/SwiftGitX/Helpers/Extensions")
