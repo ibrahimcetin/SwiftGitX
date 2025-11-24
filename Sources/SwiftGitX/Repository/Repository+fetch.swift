@@ -31,7 +31,7 @@ extension Repository {
 
     private func fetch(remote: Remote? = nil) throws(SwiftGitXError) {
         guard let remote = remote ?? (try? branch.current.remote) ?? self.remote["origin"] else {
-            throw SwiftGitXError(code: .error, category: .reference, message: "Invalid remote")
+            throw SwiftGitXError(code: .notFound, category: .reference, message: "Remote not found")
         }
 
         // Lookup the remote
