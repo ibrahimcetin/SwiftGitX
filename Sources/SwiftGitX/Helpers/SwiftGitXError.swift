@@ -63,7 +63,7 @@ public func git<T>(
     _ call: () -> (T?, Int32)
 ) throws(SwiftGitXError) -> T {
     let (pointer, status) = call()
-    return try SwiftGitXError.check(status, pointer: pointer)
+    return try SwiftGitXError.check(status, pointer: pointer, operation: operation)
 }
 
 /// An error that occurs during Git operations.
@@ -144,15 +144,15 @@ extension SwiftGitXError {
     /// This generic method validates that the pointer is non-nil after a successful operation.
     /// A nil pointer after successful status is unexpected and indicates an internal error.
     @inline(__always)
-    static func check<T>(_ status: Int32, pointer: T?) throws(SwiftGitXError) -> T {
+    static func check<T>(_ status: Int32, pointer: T?, operation: Operation? = nil) throws(SwiftGitXError) -> T {
         // Check if the status is successful
-        try check(status)
+        try check(status, operation: operation)
 
         // Check if the pointer is non-nil
         guard let pointer else {
             // This should never happen, but if it does, we throw an internal error.
             throw SwiftGitXError(
-                code: .error, category: .internal,
+                code: .error, operation: operation, category: .internal,
                 message: "Unexpected nil pointer after successful operation"
             )
         }
