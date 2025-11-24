@@ -1,8 +1,11 @@
-import libgit2
+//
+//  Branch.swift
+//  SwiftGitX
+//
+//  Created by İbrahim Çetin on 24.11.2025.
+//
 
-public enum BranchError: Error {
-    case invalid(String)
-}
+import libgit2
 
 /// A branch representation in the repository.
 public struct Branch: Reference {
@@ -36,7 +39,7 @@ public struct Branch: Reference {
     /// This property available for both local and remote branches.
     public let remote: Remote?
 
-    init(pointer: OpaquePointer) throws {
+    init(pointer: OpaquePointer) throws(SwiftGitXError) {
         let targetID = git_reference_target(pointer)
         let fullName = git_reference_name(pointer)
         let name = git_reference_shorthand(pointer)
@@ -44,8 +47,7 @@ public struct Branch: Reference {
         let repositoryPointer = git_reference_owner(pointer)
 
         guard let targetID = targetID?.pointee, let fullName, let name, let repositoryPointer else {
-            let errorMessage = String(cString: git_error_last().pointee.message)
-            throw BranchError.invalid(errorMessage)
+            throw SwiftGitXError(code: .error, category: .reference, message: "Branch is invalid")
         }
 
         // Get the target object of the branch.
@@ -65,17 +67,19 @@ public struct Branch: Reference {
                 .local
             } else {
                 // ? Should we throw an error here?
-                throw BranchError.invalid("Invalid branch type")
+                throw SwiftGitXError(code: .error, category: .reference, message: "Invalid branch type")
             }
 
         // Get the upstream branch of the branch.
-        var upstreamPointer: OpaquePointer?
+        let upstreamPointer = try? git {
+            var upstreamPointer: OpaquePointer?
+            let status = git_branch_upstream(&upstreamPointer, pointer)
+            return (upstreamPointer, status)
+        }
         defer { git_reference_free(upstreamPointer) }
 
-        let upstreamStatus = git_branch_upstream(&upstreamPointer, pointer)
-
         upstream =
-            if let upstreamPointer, upstreamStatus == GIT_OK.rawValue {
+            if let upstreamPointer {
                 try Branch(pointer: upstreamPointer)
             } else { nil }
 
@@ -83,24 +87,24 @@ public struct Branch: Reference {
         var remoteName = git_buf()
         defer { git_buf_free(&remoteName) }
 
-        let remoteNameStatus =
+        try? git { [type] in
             if type == .local {
                 git_branch_upstream_remote(&remoteName, repositoryPointer, fullName)
             } else {
                 git_branch_remote_name(&remoteName, repositoryPointer, fullName)
             }
+        }
 
-        if let rawRemoteName = remoteName.ptr, remoteNameStatus == GIT_OK.rawValue {
+        if let rawRemoteName = remoteName.ptr, remoteName.size > 0 {
             // Look up the remote.
-            var remotePointer: OpaquePointer?
+            let remotePointer = try git {
+                var remotePointer: OpaquePointer?
+                let remoteStatus = git_remote_lookup(&remotePointer, repositoryPointer, rawRemoteName)
+                return (remotePointer, remoteStatus)
+            }
             defer { git_remote_free(remotePointer) }
 
-            let remoteStatus = git_remote_lookup(&remotePointer, repositoryPointer, rawRemoteName)
-
-            remote =
-                if let remotePointer, remoteStatus == GIT_OK.rawValue {
-                    try Remote(pointer: remotePointer)
-                } else { nil }
+            remote = try Remote(pointer: remotePointer)
         } else {
             remote = nil
         }
