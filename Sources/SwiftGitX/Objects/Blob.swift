@@ -1,9 +1,12 @@
+//
+//  Blob.swift
+//  SwiftGitX
+//
+//  Created by İbrahim Çetin on 24.11.2025.
+//
+
 import Foundation
 import libgit2
-
-public enum BlobError: Error {
-    case invalid(String)
-}
 
 /// A blob object representation in the repository.
 ///
@@ -18,15 +21,14 @@ public struct Blob: Object {
     /// The type of the object.
     public let type: ObjectType = .blob
 
-    init(pointer: OpaquePointer) throws {
+    init(pointer: OpaquePointer) throws(SwiftGitXError) {
         let id = git_blob_id(pointer).pointee
 
         // ? Should we make it a computed property?
         let content = git_blob_rawcontent(pointer)
 
         guard let content else {
-            let errorMessage = String(cString: git_error_last().pointee.message)
-            throw BlobError.invalid(errorMessage)
+            throw SwiftGitXError(code: .error, category: .object, message: "Blob content is nil")
         }
 
         self.id = OID(raw: id)
