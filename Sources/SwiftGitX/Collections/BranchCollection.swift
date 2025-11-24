@@ -86,7 +86,7 @@ public struct BranchCollection: Sequence {
     /// - Returns: An array of branches.
     public func list(_ type: BranchType = .all) throws(SwiftGitXError) -> [Branch] {
         // Create a branch iterator
-        let branchIterator = try git(operation: .branch) {
+        let branchIterator = try git(operation: .branchList) {
             var branchIterator: OpaquePointer?
             let status = git_branch_iterator_new(&branchIterator, repositoryPointer, type.raw)
             return (branchIterator, status)
@@ -98,7 +98,7 @@ public struct BranchCollection: Sequence {
 
         while true {
             do {
-                let branchPointer = try git(operation: .branch) {
+                let branchPointer = try git(operation: .branchList) {
                     var branchPointer: OpaquePointer?
                     let status = git_branch_next(&branchPointer, &branchType, branchIterator)
                     return (branchPointer, status)
@@ -138,7 +138,7 @@ public struct BranchCollection: Sequence {
         defer { git_object_free(targetPointer) }
 
         // Create the branch
-        let branchPointer = try git(operation: .branch) {
+        let branchPointer = try git(operation: .branchCreate) {
             var branchPointer: OpaquePointer?
             let status = git_branch_create(&branchPointer, repositoryPointer, name, targetPointer, force ? 1 : 0)
             return (branchPointer, status)
@@ -187,7 +187,7 @@ public struct BranchCollection: Sequence {
         defer { git_reference_free(branchPointer) }
 
         // Delete the branch
-        try git(operation: .branch) {
+        try git(operation: .branchDelete) {
             git_branch_delete(branchPointer)
         }
     }
@@ -212,7 +212,7 @@ public struct BranchCollection: Sequence {
         defer { git_reference_free(branchPointer) }
 
         // New branch pointer
-        let newBranchPointer = try git(operation: .branch) {
+        let newBranchPointer = try git(operation: .branchRename) {
             var newBranchPointer: OpaquePointer?
             let status = git_branch_move(&newBranchPointer, branchPointer, newName, force ? 1 : 0)
             return (newBranchPointer, status)
@@ -250,7 +250,7 @@ public struct BranchCollection: Sequence {
         defer { git_reference_free(localBranchPointer) }
 
         // Set the upstream branch
-        try git(operation: .branch) {
+        try git(operation: .branchSetUpstream) {
             git_branch_set_upstream(localBranchPointer, upstreamBranch?.name)
         }
     }
@@ -272,4 +272,12 @@ public struct BranchCollection: Sequence {
     public func makeIterator() -> BranchIterator {
         BranchIterator(type: .all, repositoryPointer: repositoryPointer)
     }
+}
+
+extension SwiftGitXError.Operation {
+    static let branchCreate = Self(rawValue: "branchCreate")
+    static let branchDelete = Self(rawValue: "branchDelete")
+    static let branchRename = Self(rawValue: "branchRename")
+    static let branchSetUpstream = Self(rawValue: "branchSetUpstream")
+    static let branchList = Self(rawValue: "branchList")
 }
