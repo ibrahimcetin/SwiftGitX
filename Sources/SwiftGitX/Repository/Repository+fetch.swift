@@ -16,20 +16,8 @@ extension Repository {
     ///
     /// If the remote is not specified, the upstream of the current branch is used
     /// and if the upstream branch is not found, the `origin` remote is used.
-    public func fetch(remote: Remote? = nil) async throws {
-        try await withUnsafeThrowingContinuation { continuation in
-            do {
-                try fetch(remote: remote)
-                continuation.resume()
-            } catch {
-                continuation.resume(throwing: error)
-            }
-        }
-    }
-
     // TODO: Implement options as parameter
-
-    private func fetch(remote: Remote? = nil) throws(SwiftGitXError) {
+    public nonisolated func fetch(remote: Remote? = nil) async throws(SwiftGitXError) {
         guard let remote = remote ?? (try? branch.current.remote) ?? self.remote["origin"] else {
             throw SwiftGitXError(code: .notFound, category: .reference, message: "Remote not found")
         }
