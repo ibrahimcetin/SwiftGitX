@@ -117,11 +117,13 @@ extension Repository {
     ///
     /// - Returns: The URL of the working directory.
     ///
-    /// - Throws: `RepositoryError.failedToGetWorkingDirectory` if the repository is bare.
+    /// - Throws: `SwiftGitXError` if the repository is bare.
     public var workingDirectory: URL {
-        get throws {
+        get throws(SwiftGitXError) {
             guard let path = git_repository_workdir(pointer)
-            else { throw RepositoryError.failedToGetWorkingDirectory }
+            else {
+                throw SwiftGitXError(code: .error, category: .repository, message: "Failed to get working directory")
+            }
 
             return URL(fileURLWithPath: String(cString: path), isDirectory: true, relativeTo: nil)
         }
