@@ -1,10 +1,12 @@
+//
+//  Commit.swift
+//  SwiftGitX
+//
+//  Created by İbrahim Çetin on 24.11.2025.
+//
+
 import Foundation
 import libgit2
-
-public enum CommitError: Error {
-    case invalid(String)
-    case failedToGetParentCommits(String)
-}
 
 /// A commit object representation in the repository.
 public struct Commit: Object {
@@ -34,7 +36,7 @@ public struct Commit: Object {
 
     /// The parent commits of the commit.
     public var parents: [Commit] {
-        get throws {
+        get throws(SwiftGitXError) {
             // Lookup the commit
             let pointer = try ObjectFactory.lookupObjectPointer(
                 oid: id.raw,
@@ -48,15 +50,12 @@ public struct Commit: Object {
             let parentCount = git_commit_parentcount(pointer)
 
             for index in 0..<parentCount {
-                var parentPointer: OpaquePointer?
-                defer { git_commit_free(parentPointer) }
-
-                let status = git_commit_parent(&parentPointer, pointer, index)
-
-                guard let parentPointer, status == GIT_OK.rawValue else {
-                    let errorMessage = String(cString: git_error_last().pointee.message)
-                    throw CommitError.failedToGetParentCommits(errorMessage)
+                let parentPointer = try git {
+                    var parentPointer: OpaquePointer?
+                    let status = git_commit_parent(&parentPointer, pointer, index)
+                    return (parentPointer, status)
                 }
+                defer { git_commit_free(parentPointer) }
 
                 let parent = try Commit(pointer: parentPointer)
                 parents.append(parent)
@@ -72,7 +71,7 @@ public struct Commit: Object {
     // This is necessary to get parents of the commit.
     private let repositoryPointer: OpaquePointer
 
-    init(pointer: OpaquePointer) throws {
+    init(pointer: OpaquePointer) throws(SwiftGitXError) {
         let id = git_commit_id(pointer)?.pointee
         let author = git_commit_author(pointer)
         let committer = git_commit_committer(pointer)
@@ -82,17 +81,20 @@ public struct Commit: Object {
         let date = git_commit_time(pointer)
         let repositoryPointer = git_commit_owner(pointer)
 
-        var tree: OpaquePointer?
+        let tree = try git {
+            var tree: OpaquePointer?
+            let status = git_commit_tree(&tree, pointer)
+            return (tree, status)
+        }
         defer { git_tree_free(tree) }
 
-        let treeStatus = git_commit_tree(&tree, pointer)
-
-        guard let id, let author = author?.pointee, let committer = committer?.pointee, let message, let summary,
-            let tree, let repositoryPointer,
-            treeStatus == GIT_OK.rawValue
+        guard let id,
+            let author = author?.pointee,
+            let committer = committer?.pointee,
+            let message, let summary,
+            let repositoryPointer
         else {
-            let errorMessage = String(cString: git_error_last().pointee.message)
-            throw CommitError.invalid(errorMessage)
+            throw SwiftGitXError(code: .error, category: .object, message: "Invalid commit")
         }
 
         self.id = OID(raw: id)
