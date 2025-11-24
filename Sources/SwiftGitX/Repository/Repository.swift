@@ -59,26 +59,30 @@ public final class Repository {
     /// If a repository does not exist, a new one will be created.
     ///
     /// The `path` argument must point to either an existing working directory, or a `.git` repository folder to open.
-    public init(at path: URL, createIfNotExists: Bool = true) throws {
-        var pointer: OpaquePointer?
+    public init(at path: URL, createIfNotExists: Bool = true) throws(SwiftGitXError) {
+        let pointerOpen = try? git(operation: .open) {
+            var pointer: OpaquePointer?
+            // Try to open the repository at the specified path
+            let status = git_repository_open(&pointer, path.path)
+            return (pointer, status)
+        }
 
-        // Try to open the repository at the specified path
-        let statusOpen = git_repository_open(&pointer, path.path)
-
-        if let pointer, statusOpen == GIT_OK.rawValue {
-            self.pointer = pointer
+        if let pointerOpen {
+            self.pointer = pointerOpen
         } else if createIfNotExists {
             // If the repository does not exist, create a new one
-            let statusCreate = git_repository_init(&pointer, path.path, 0)
-
-            guard let pointer, statusCreate == GIT_OK.rawValue else {
-                let errorMessage = String(cString: git_error_last().pointee.message)
-                throw RepositoryError.failedToCreate(errorMessage)
+            let pointerCreate = try git(operation: .create) {
+                var pointer: OpaquePointer?
+                let status = git_repository_init(&pointer, path.path, 0)
+                return (pointer, status)
             }
 
-            self.pointer = pointer
+            self.pointer = pointerCreate
         } else {
-            throw RepositoryError.failedToOpen("Repository not found at \(path.path)")
+            throw SwiftGitXError(
+                code: .notFound, category: .repository,
+                message: "Repository not found at \(path.path)"
+            )
         }
     }
 
@@ -187,15 +191,11 @@ extension Repository {
     /// - Parameter path: The path to the repository.
     ///
     /// - Returns: The repository at the specified path.
-    ///
-    /// - Throws: `RepositoryError.failedToOpen` if the repository cannot be opened.
-    public static func open(at path: URL) throws -> Repository {
-        var pointer: OpaquePointer?
-        let status = git_repository_open(&pointer, path.path)
-
-        guard let pointer, status == GIT_OK.rawValue else {
-            let errorMessage = String(cString: git_error_last().pointee.message)
-            throw RepositoryError.failedToOpen(errorMessage)
+    public static func open(at path: URL) throws(SwiftGitXError) -> Repository {
+        let pointer = try git(operation: .open) {
+            var pointer: OpaquePointer?
+            let status = git_repository_open(&pointer, path.path)
+            return (pointer, status)
         }
 
         return Repository(pointer: pointer)
@@ -208,16 +208,12 @@ extension Repository {
     ///   - isBare: A boolean value that indicates whether the repository should be bare.
     ///
     /// - Returns: The repository at the specified path.
-    ///
-    /// - Throws: `RepositoryError.failedToCreate` if the repository cannot be created.
-    public static func create(at path: URL, isBare: Bool = false) throws -> Repository {
+    public static func create(at path: URL, isBare: Bool = false) throws(SwiftGitXError) -> Repository {
         // Create a new repository at the specified URL
-        var pointer: OpaquePointer?
-        let status = git_repository_init(&pointer, path.path, isBare ? 1 : 0)
-
-        guard let pointer, status == GIT_OK.rawValue else {
-            let errorMessage = String(cString: git_error_last().pointee.message)
-            throw RepositoryError.failedToCreate(errorMessage)
+        let pointer = try git(operation: .create) {
+            var pointer: OpaquePointer?
+            let status = git_repository_init(&pointer, path.path, isBare ? 1 : 0)
+            return (pointer, status)
         }
 
         return Repository(pointer: pointer)
