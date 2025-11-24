@@ -1,3 +1,10 @@
+//
+//  StashCollection.swift
+//  SwiftGitX
+//
+//  Created by İbrahim Çetin on 24.11.2025.
+//
+
 import libgit2
 
 /// A collection of stashes and their operations.
