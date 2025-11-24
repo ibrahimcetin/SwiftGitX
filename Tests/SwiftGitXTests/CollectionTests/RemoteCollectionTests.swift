@@ -84,7 +84,13 @@ final class RemoteCollectionTests: SwiftGitXTestCase {
 
         // Get the remote from the repository
         XCTAssertThrowsError(try repository.remote.get(named: "origin")) { error in
-            XCTAssertEqual(error as? RemoteError, .notFound("remote \'origin\' does not exist"))
+            XCTAssertTrue(error is SwiftGitXError)
+
+            let error = error as? SwiftGitXError
+
+            XCTAssertEqual(error?.code, .notFound)
+            XCTAssertEqual(error?.category, .config)
+            XCTAssertEqual(error?.message, "remote \'origin\' does not exist")
         }
     }
 
@@ -126,7 +132,13 @@ final class RemoteCollectionTests: SwiftGitXTestCase {
 
         // Get the remote
         XCTAssertThrowsError(try repository.remote.get(named: "origin")) { error in
-            XCTAssertEqual(error as? RemoteError, .notFound("remote \'origin\' does not exist"))
+            XCTAssertTrue(error is SwiftGitXError)
+
+            let error = error as? SwiftGitXError
+
+            XCTAssertEqual(error?.code, .notFound)
+            XCTAssertEqual(error?.category, .config)
+            XCTAssertEqual(error?.message, "remote \'origin\' does not exist")
         }
     }
 
