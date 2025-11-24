@@ -7,6 +7,65 @@
 
 import libgit2
 
+/// Executes a Git operation and automatically checks for errors.
+///
+/// This function wraps libgit2 calls and automatically checks the returned
+/// status code, throwing `SwiftGitXError` if the operation fails.
+///
+/// - Parameters:
+///   - operation: Optional operation context for error reporting.
+///   - call: The libgit2 function call that returns a status code.
+///
+/// - Throws: `SwiftGitXError` if the operation fails.
+///
+/// ## Example
+///
+/// ```swift
+/// try git {
+///     git_commit_create_from_stage(&oid, pointer, message, &options)
+/// }
+///
+/// // With operation context
+/// try git(operation: .push) {
+///     git_push(remote, refspecs, options)
+/// }
+/// ```
+public func git(
+    operation: SwiftGitXError.Operation? = nil,
+    _ call: () -> Int32
+) throws(SwiftGitXError) {
+    let status = call()
+    try SwiftGitXError.check(status, operation: operation)
+}
+
+/// Executes a Git operation that returns a pointer and automatically checks for errors.
+///
+/// - Parameters:
+///   - operation: Optional operation context for error reporting.
+///   - call: A closure that returns a tuple of (optional pointer, status code).
+///
+/// - Returns: The validated non-nil pointer.
+/// - Throws: `SwiftGitXError` if the operation fails or pointer is nil.
+///
+/// ## Example
+///
+/// ```swift
+/// let pointer = try git(operation: .clone) {
+///     var pointer: OpaquePointer?
+///     let status = git_clone(&pointer, remoteURL.absoluteString, localURL.path, &options)
+///     return (pointer, status)
+/// }
+/// ```
+///
+/// - Important: The returned pointer must be released with appropriate `git_<type>_free` function when no longer needed.
+public func git<T>(
+    operation: SwiftGitXError.Operation? = nil,
+    _ call: () -> (T?, Int32)
+) throws(SwiftGitXError) -> T {
+    let (pointer, status) = call()
+    return try SwiftGitXError.check(status, pointer: pointer)
+}
+
 /// An error that occurs during Git operations.
 ///
 /// `SwiftGitXError` provides detailed information about errors encountered
@@ -18,15 +77,31 @@ public struct SwiftGitXError: Error {
     /// The error code indicating what went wrong.
     public let code: Code
 
+    /// The operation that caused the error.
+    public let operation: Operation?
+
     /// The error category identifying where the error originated.
     public let category: Category
 
     /// A human-readable description of the error.
     public let message: String
 
-    private init(status: Int32) {
+    init(code: Code, operation: Operation? = nil, category: Category, message: String) {
+        self.code = code
+        self.operation = operation
+        self.category = category
+        self.message = message
+    }
+}
+
+extension SwiftGitXError {
+    private init(status: Int32, operation: Operation? = nil) {
         self.code = Code(rawValue: Int(status)) ?? .error
 
+        self.operation = operation
+
+        // If the status is less than 0, we have an error.
+        // Get the error message from the last error.
         if status < 0, let error = git_error_last() {
             self.category = Category(rawValue: Int(error.pointee.klass)) ?? .none
             self.message = String(cString: error.pointee.message)
@@ -52,10 +127,37 @@ extension SwiftGitXError {
     /// try SwiftGitXError.check(status)
     /// ```
     @inline(__always)
-    public static func check(_ status: Int32) throws {
+    public static func check(_ status: Int32, operation: Operation? = nil) throws(SwiftGitXError) {
+        // If the status is less than 0, we have an error.
         guard status >= 0 else {
-            throw SwiftGitXError(status: status)
+            throw SwiftGitXError(status: status, operation: operation)
         }
+    }
+
+    /// Throws SwiftGitXError if status indicates an error and pointer is nil.
+    ///
+    /// - Parameters:
+    ///   - status: The status code returned by a libgit2 operation.
+    ///   - pointer: The pointer returned from a libgit2 operation.
+    /// - Returns: The non-optional pointer of the same type.
+    ///
+    /// This generic method validates that the pointer is non-nil after a successful operation.
+    /// A nil pointer after successful status is unexpected and indicates an internal error.
+    @inline(__always)
+    static func check<T>(_ status: Int32, pointer: T?) throws(SwiftGitXError) -> T {
+        // Check if the status is successful
+        try check(status)
+
+        // Check if the pointer is non-nil
+        guard let pointer else {
+            // This should never happen, but if it does, we throw an internal error.
+            throw SwiftGitXError(
+                code: .error, category: .internal,
+                message: "Unexpected nil pointer after successful operation"
+            )
+        }
+
+        return pointer
     }
 }
 
@@ -301,6 +403,16 @@ extension SwiftGitXError {
 
         /// Grafts error.
         case grafts = 36
+    }
+
+    public struct Operation: RawRepresentable {
+        public static let clone = Operation(rawValue: "clone")
+
+        public let rawValue: String
+
+        public init(rawValue: String) {
+            self.rawValue = rawValue
+        }
     }
 }
 
