@@ -18,7 +18,7 @@ extension Repository {
     /// This method restores the working tree files to their state at the HEAD commit.
     ///
     /// This method can also restore the staged files to their state at the HEAD commit.
-    public func restore(_ restoreOptions: RestoreOption = .workingTree, paths: [String] = []) throws {
+    public func restore(_ restoreOptions: RestoreOption = .workingTree, paths: [String] = []) throws(SwiftGitXError) {
         // TODO: Implement source commit option
 
         // Initialize the checkout options
@@ -27,7 +27,8 @@ extension Repository {
             paths: paths
         )
 
-        let status = try options.withGitCheckoutOptions { gitCheckoutOptions in
+        // TODO: find a better way to handle this instead of using a closure
+        let status = try options.withGitCheckoutOptions { (gitCheckoutOptions) throws(SwiftGitXError) -> Int32 in
             var gitCheckoutOptions = gitCheckoutOptions
 
             switch restoreOptions {
@@ -49,14 +50,11 @@ extension Repository {
                 // Checkout HEAD if source is nil
                 return git_checkout_tree(pointer, nil, &gitCheckoutOptions)
             default:
-                throw RepositoryError.failedToRestore("Invalid restore options")
+                throw SwiftGitXError(code: .error, category: .invalid, message: "Invalid restore options")
             }
         }
 
-        guard status == GIT_OK.rawValue else {
-            let errorMessage = String(cString: git_error_last().pointee.message)
-            throw RepositoryError.failedToRestore(errorMessage)
-        }
+        try SwiftGitXError.check(status, operation: .restore)
     }
 
     /// Restores working tree files.
@@ -68,9 +66,9 @@ extension Repository {
     /// This method restores the working tree files to their state at the HEAD commit.
     ///
     /// This method can also restore the staged files to their state at the HEAD commit.
-    public func restore(_ restoreOptions: RestoreOption = .workingTree, files: [URL]) throws {
-        let paths = try files.map {
-            try $0.relativePath(from: workingDirectory)
+    public func restore(_ restoreOptions: RestoreOption = .workingTree, files: [URL]) throws(SwiftGitXError) {
+        let paths = try files.map { (url) throws(SwiftGitXError) -> String in
+            try url.relativePath(from: workingDirectory)
         }
 
         try restore(restoreOptions, paths: paths)
