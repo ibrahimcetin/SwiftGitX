@@ -13,10 +13,8 @@ extension Repository {
     /// - Parameters:
     ///   - commit: The commit to revert.
     ///
-    /// - Throws: `RepositoryError.failedToRevert` if the revert operation fails.
-    ///
     /// This method reverts the given commit, producing changes in the index and working directory.
-    public func revert(_ commit: Commit) throws {
+    public func revert(_ commit: Commit) throws(SwiftGitXError) {
         // Lookup the commit pointer
         let commitPointer = try ObjectFactory.lookupObjectPointer(
             oid: commit.id.raw,
@@ -28,11 +26,8 @@ extension Repository {
         // TODO: Implement revert options
 
         // Perform the revert operation
-        let revertStatus = git_revert(pointer, commitPointer, nil)
-
-        guard revertStatus == GIT_OK.rawValue else {
-            let errorMessage = String(cString: git_error_last().pointee.message)
-            throw RepositoryError.failedToRevert(errorMessage)
+        try git(operation: .revert) {
+            git_revert(pointer, commitPointer, nil)
         }
     }
 }
