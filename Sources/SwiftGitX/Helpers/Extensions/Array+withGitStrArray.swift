@@ -29,7 +29,7 @@ extension [String] {
     ///
     /// - Note: The `git_strarray` instance is freed after the closure is executed. You shouldn't use it outside the
     /// closure.
-    func withGitStrArray<T>(_ body: (git_strarray) throws -> T) rethrows -> T {
+    func withGitStrArray<T>(_ body: (git_strarray) throws(SwiftGitXError) -> T) throws(SwiftGitXError) -> T {
         var strArray = gitStrArray
         defer { git_strarray_free(&strArray) }
 
