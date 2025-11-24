@@ -18,15 +18,15 @@ SwiftGitX provides modern and easy to use bindings to [libgit2](https://libgit2.
 - ``SwiftGitX``
 - ``Repository``
 
-### Objects
+### Object Types
 
 - <doc:Objects>
 
-### References
+### Reference Types
 
 - <doc:References>
 
-### Collections
+### Collection Types
 
 - <doc:Collections>
 
@@ -35,10 +35,10 @@ SwiftGitX provides modern and easy to use bindings to [libgit2](https://libgit2.
 - <doc:GitModels>
 - <doc:HelperModels>
 
-### Iterators
+### Iterator Types
 
 - <doc:Iterators>
 
-### Error Types
+### Error Handling
 
-- <doc:ErrorTypes>
+- <doc:ErrorHandling>
