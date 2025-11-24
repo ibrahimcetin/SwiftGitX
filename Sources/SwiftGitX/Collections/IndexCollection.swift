@@ -1,20 +1,12 @@
+//
+//  IndexCollection.swift
+//  SwiftGitX
+//
+//  Created by İbrahim Çetin on 23.11.2025.
+//
+
 import Foundation
 import libgit2
-
-/// An error that occurred while performing an index operation.
-public enum IndexError: Error {
-    /// An error occurred while reading the index from the repository.
-    case failedToReadIndex(String)
-
-    /// An error occurred while writing the index back to the repository.
-    case failedToWriteIndex(String)
-
-    /// An error occurred while adding a file to the index.
-    case failedToAddFile(String)
-
-    /// An error occurred while removing a file from the index.
-    case failedToRemoveFile(String)
-}
 
 /// A collection of index operations.
 struct IndexCollection {
@@ -24,44 +16,34 @@ struct IndexCollection {
         self.repositoryPointer = repositoryPointer
     }
 
-    /// The error message from the last failed operation.
-    private var errorMessage: String {
-        String(cString: git_error_last().pointee.message)
-    }
-
     /// Reads the index from the repository.
     ///
     /// - Returns: The index pointer.
     ///
     /// The returned index pointer must be freed using `git_index_free`.
-    private func readIndexPointer() throws -> OpaquePointer {
-        var indexPointer: OpaquePointer?
-        let status = git_repository_index(&indexPointer, repositoryPointer)
-
-        guard let indexPointer, status == GIT_OK.rawValue else {
-            throw IndexError.failedToReadIndex(errorMessage)
+    private func readIndexPointer() throws(SwiftGitXError) -> OpaquePointer {
+        try git(operation: .index) {
+            var indexPointer: OpaquePointer?
+            let status = git_repository_index(&indexPointer, repositoryPointer)
+            return (indexPointer, status)
         }
-
-        return indexPointer
     }
 
     /// Writes the index back to the repository.
     ///
     /// - Parameter indexPointer: The index pointer.
-    private func writeIndex(indexPointer: OpaquePointer) throws {
-        let status = git_index_write(indexPointer)
-
-        guard status == GIT_OK.rawValue else {
-            throw IndexError.failedToWriteIndex(errorMessage)
+    private func writeIndex(indexPointer: OpaquePointer) throws(SwiftGitXError) {
+        try git(operation: .index) {
+            git_index_write(indexPointer)
         }
     }
 
     /// Returns the repository working directory relative path for a file.
     ///
     /// - Parameter file: The file URL.
-    private func relativePath(for file: URL) throws -> String {
+    private func relativePath(for file: URL) throws(SwiftGitXError) -> String {
         guard let rawWorkingDirectory = git_repository_workdir(repositoryPointer) else {
-            throw RepositoryError.failedToGetWorkingDirectory
+            throw SwiftGitXError(code: .error, category: .repository, message: "Failed to get working directory")
         }
 
         let workingDirectory = URL(fileURLWithPath: String(cString: rawWorkingDirectory), isDirectory: true)
@@ -75,16 +57,14 @@ struct IndexCollection {
     ///
     /// The path should be relative to the repository root directory.
     /// For example, `README.md` or `Sources/SwiftGitX/Repository.swift`.
-    func add(path: String) throws {
+    func add(path: String) throws(SwiftGitXError) {
         // Read the index
         let indexPointer = try readIndexPointer()
         defer { git_index_free(indexPointer) }
 
         // Add the file to the index
-        let status = git_index_add_bypath(indexPointer, path)
-
-        guard status == GIT_OK.rawValue else {
-            throw IndexError.failedToAddFile(errorMessage)
+        try git(operation: .index) {
+            git_index_add_bypath(indexPointer, path)
         }
 
         // Write the index back to the repository
@@ -96,7 +76,7 @@ struct IndexCollection {
     /// - Parameter file: The file URL.
     ///
     /// The file should be a URL to a file in the repository.
-    func add(file: URL) throws {
+    func add(file: URL) throws(SwiftGitXError) {
         // Get the relative path of the file
         let relativePath = try relativePath(for: file)
 
@@ -110,24 +90,22 @@ struct IndexCollection {
     ///
     /// The paths should be relative to the repository root directory.
     /// For example, `README.md` or `Sources/SwiftGitX/Repository.swift`.
-    func add(paths: [String]) throws {
+    func add(paths: [String]) throws(SwiftGitXError) {
         // Read the index
         let indexPointer = try readIndexPointer()
         defer { git_index_free(indexPointer) }
 
-        try paths.withGitStrArray { strArray in
-            var strArray = strArray
+        var strArray = paths.gitStrArray
+        defer { git_strarray_free(&strArray) }
 
-            let flags = GIT_INDEX_ADD_DEFAULT.rawValue | GIT_INDEX_ADD_DISABLE_PATHSPEC_MATCH.rawValue
+        let flags = GIT_INDEX_ADD_DEFAULT.rawValue | GIT_INDEX_ADD_DISABLE_PATHSPEC_MATCH.rawValue
 
-            // TODO: Implement options
-            // Add the files to the index
-            let status = git_index_add_all(indexPointer, &strArray, flags, nil, nil)
-
-            guard status == GIT_OK.rawValue else {
-                throw IndexError.failedToAddFile(errorMessage)
-            }
+        // TODO: Implement options
+        // Add the files to the index
+        try git(operation: .index) {
+            git_index_add_all(indexPointer, &strArray, flags, nil, nil)
         }
+
         // Write the index back to the repository
         try writeIndex(indexPointer: indexPointer)
     }
@@ -137,9 +115,11 @@ struct IndexCollection {
     /// - Parameter files: The file URLs.
     ///
     /// The files should be URLs to files in the repository.
-    func add(files: [URL]) throws {
+    func add(files: [URL]) throws(SwiftGitXError) {
         // Get the relative paths of the files
-        let paths = try files.map { try relativePath(for: $0) }
+        let paths = try files.map { (url) throws(SwiftGitXError) -> String in
+            try relativePath(for: url)
+        }
 
         // Add the files to the index
         try add(paths: paths)
@@ -151,16 +131,14 @@ struct IndexCollection {
     ///
     /// The path should be relative to the repository root directory.
     /// For example, `README.md` or `Sources/SwiftGitX/Repository.swift`.
-    func remove(path: String) throws {
+    func remove(path: String) throws(SwiftGitXError) {
         // Read the index
         let indexPointer = try readIndexPointer()
         defer { git_index_free(indexPointer) }
 
         // Remove the file from the index
-        let status = git_index_remove_bypath(indexPointer, path)
-
-        guard status == GIT_OK.rawValue else {
-            throw IndexError.failedToRemoveFile(errorMessage)
+        try git(operation: .index) {
+            git_index_remove_bypath(indexPointer, path)
         }
 
         // Write the index back to the repository
@@ -172,7 +150,7 @@ struct IndexCollection {
     /// - Parameter file: The file URL.
     ///
     /// The file should be a URL to a file in the repository.
-    func remove(file: URL) throws {
+    func remove(file: URL) throws(SwiftGitXError) {
         // Get the relative path of the file
         let relativePath = try relativePath(for: file)
 
@@ -186,20 +164,18 @@ struct IndexCollection {
     ///
     /// The paths should be relative to the repository root directory.
     /// For example, `README.md` or `Sources/SwiftGitX/Repository.swift`.
-    func remove(paths: [String]) throws {
+    func remove(paths: [String]) throws(SwiftGitXError) {
         // Read the index
         let indexPointer = try readIndexPointer()
         defer { git_index_free(indexPointer) }
 
         // TODO: Implement options
         // Remove the files from the index
-        try paths.withGitStrArray { strArray in
-            var strArray = strArray
-            let status = git_index_remove_all(indexPointer, &strArray, nil, nil)
+        var strArray = paths.gitStrArray
+        defer { git_strarray_free(&strArray) }
 
-            guard status == GIT_OK.rawValue else {
-                throw IndexError.failedToRemoveFile(errorMessage)
-            }
+        try git(operation: .index) {
+            git_index_remove_all(indexPointer, &strArray, nil, nil)
         }
 
         // Write the index back to the repository
@@ -211,9 +187,11 @@ struct IndexCollection {
     /// - Parameter files: The file URLs.
     ///
     /// The files should be URLs to files in the repository.
-    func remove(files: [URL]) throws {
+    func remove(files: [URL]) throws(SwiftGitXError) {
         // Get the relative paths of the files
-        let paths = try files.map { try relativePath(for: $0) }
+        let paths = try files.map { (url) throws(SwiftGitXError) -> String in
+            try relativePath(for: url)
+        }
 
         // Remove the files from the index
         try remove(paths: paths)
@@ -222,16 +200,14 @@ struct IndexCollection {
     /// Removes all files from the index.
     ///
     /// This method will clear the index.
-    func removeAll() throws {
+    func removeAll() throws(SwiftGitXError) {
         // Read the index
         let indexPointer = try readIndexPointer()
         defer { git_index_free(indexPointer) }
 
         // Remove all files from the index
-        let status = git_index_clear(indexPointer)
-
-        guard status == GIT_OK.rawValue else {
-            throw IndexError.failedToRemoveFile(errorMessage)
+        try git(operation: .index) {
+            git_index_clear(indexPointer)
         }
 
         // Write the index back to the repository

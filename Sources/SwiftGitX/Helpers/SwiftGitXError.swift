@@ -411,6 +411,7 @@ extension SwiftGitXError {
         public static let diff = Operation(rawValue: "diff")
         public static let fetch = Operation(rawValue: "fetch")
         public static let head = Operation(rawValue: "head")
+        public static let index = Operation(rawValue: "index")
 
         public let rawValue: String
 
