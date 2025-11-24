@@ -54,7 +54,7 @@ extension Repository {
             case [.workingTree, .index]:
                 git_diff_tree_to_workdir_with_index(&diffPointer, pointer, headTreePointer, nil)
             default:
-                throw SwiftGitXError(code: .error, category: .none, message: "Invalid diff option")
+                throw SwiftGitXError(code: .error, category: .invalid, message: "Invalid diff option")
             }
 
         let validDiffPointer = try SwiftGitXError.check(diffStatus, pointer: diffPointer, operation: .diff)
