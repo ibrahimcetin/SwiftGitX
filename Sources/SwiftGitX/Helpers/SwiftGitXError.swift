@@ -406,6 +406,7 @@ extension SwiftGitXError {
     }
 
     public struct Operation: RawRepresentable {
+        public static let config = Operation(rawValue: "config")
         public static let clone = Operation(rawValue: "clone")
         public static let checkout = Operation(rawValue: "checkout")
         public static let commit = Operation(rawValue: "commit")
