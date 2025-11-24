@@ -6,7 +6,7 @@ enum ReferenceFactory {
     /// - Parameter pointer: The reference pointer.
     ///
     /// - Returns: A reference of type `Branch` or `Tag` based on the type of the reference.
-    static func makeReference(pointer: OpaquePointer) throws -> any Reference {
+    static func makeReference(pointer: OpaquePointer) throws(SwiftGitXError) -> any Reference {
         if git_reference_is_branch(pointer) == 1 || git_reference_is_remote(pointer) == 1 {
             return try Branch(pointer: pointer)
         } else if git_reference_is_tag(pointer) == 1 {
@@ -19,7 +19,7 @@ enum ReferenceFactory {
             let repositoryPointer = git_reference_owner(pointer)
 
             guard let rawName, let repositoryPointer else {
-                throw ReferenceError.invalid("Invalid reference")
+                throw SwiftGitXError(code: .error, category: .reference, message: "Invalid reference")
             }
 
             // Lookup the tag by its full name
@@ -30,7 +30,7 @@ enum ReferenceFactory {
 
             return tag
         } else {
-            throw ReferenceError.invalid("Invalid reference type")
+            throw SwiftGitXError(code: .error, category: .reference, message: "Invalid reference type")
         }
     }
 
@@ -43,62 +43,43 @@ enum ReferenceFactory {
     /// - Returns: The opaque pointer to the reference.
     ///
     /// - Important: The returned reference pointer must be released with `git_reference_free` when no longer needed.
-    static func lookupReferencePointer(fullName: String, repositoryPointer: OpaquePointer) throws -> OpaquePointer {
-        var pointer: OpaquePointer?
-
-        let status = git_reference_lookup(&pointer, repositoryPointer, fullName)
-
-        guard status == GIT_OK.rawValue, let referencePointer = pointer else {
-            switch status {
-            case GIT_ENOTFOUND.rawValue:
-                throw ReferenceError.notFound
-            default:
-                let errorMessage = String(cString: git_error_last().pointee.message)
-                throw ReferenceError.invalid(errorMessage)
-            }
+    static func lookupReferencePointer(
+        fullName: String,
+        repositoryPointer: OpaquePointer
+    ) throws(SwiftGitXError) -> OpaquePointer {
+        let pointer = try git {
+            var pointer: OpaquePointer?
+            let status = git_reference_lookup(&pointer, repositoryPointer, fullName)
+            return (pointer, status)
         }
 
-        return referencePointer
+        return pointer
     }
 
     static func lookupBranchPointer(
         name: String,
         type: git_branch_t,
         repositoryPointer: OpaquePointer
-    ) throws -> OpaquePointer {
-        var pointer: OpaquePointer?
-
-        let status = git_branch_lookup(&pointer, repositoryPointer, name, type)
-
-        guard status == GIT_OK.rawValue, let branchPointer = pointer else {
-            switch status {
-            case GIT_ENOTFOUND.rawValue:
-                throw ReferenceError.notFound
-            default:
-                let errorMessage = String(cString: git_error_last().pointee.message)
-                throw ReferenceError.invalid(errorMessage)
-            }
+    ) throws(SwiftGitXError) -> OpaquePointer {
+        let pointer = try git {
+            var pointer: OpaquePointer?
+            let status = git_branch_lookup(&pointer, repositoryPointer, name, type)
+            return (pointer, status)
         }
 
-        return branchPointer
+        return pointer
     }
 
-    static func lookupRemotePointer(name: String, repositoryPointer: OpaquePointer) throws -> OpaquePointer {
-        var pointer: OpaquePointer?
-
-        let status = git_remote_lookup(&pointer, repositoryPointer, name)
-
-        guard status == GIT_OK.rawValue, let remotePointer = pointer else {
-            let errorMessage = String(cString: git_error_last().pointee.message)
-
-            switch status {
-            case GIT_ENOTFOUND.rawValue:
-                throw RemoteError.notFound(errorMessage)
-            default:
-                throw RemoteError.invalid(errorMessage)
-            }
+    static func lookupRemotePointer(
+        name: String,
+        repositoryPointer: OpaquePointer
+    ) throws(SwiftGitXError) -> OpaquePointer {
+        let pointer = try git {
+            var pointer: OpaquePointer?
+            let status = git_remote_lookup(&pointer, repositoryPointer, name)
+            return (pointer, status)
         }
 
-        return remotePointer
+        return pointer
     }
 }
