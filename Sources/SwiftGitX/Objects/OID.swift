@@ -1,8 +1,11 @@
-import libgit2
+//
+//  OID.swift
+//  SwiftGitX
+//
+//  Created by İbrahim Çetin on 24.11.2025.
+//
 
-public enum OIDError: Error {
-    case invalid(String)
-}
+import libgit2
 
 /// An Object ID representation in the repository.
 ///
@@ -41,13 +44,11 @@ public struct OID: LibGit2RawRepresentable {
     /// Create an OID from a hex string.
     ///
     /// - Parameter hex: The 40-byte length hex string.
-    public init(hex: String) throws {
+    public init(hex: String) throws(SwiftGitXError) {
         var raw = git_oid()
-        let status = git_oid_fromstr(&raw, hex)
 
-        guard status == GIT_OK.rawValue else {
-            let errorMessage = String(cString: git_error_last().pointee.message)
-            throw OIDError.invalid(errorMessage)
+        try git {
+            git_oid_fromstr(&raw, hex)
         }
 
         self.raw = raw
