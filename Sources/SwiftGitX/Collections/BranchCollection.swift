@@ -235,15 +235,15 @@ public struct BranchCollection: Sequence {
     /// If the `upstreamBranch` is specified `nil`, the upstream branch will be unset.
     public func setUpstream(from localBranch: Branch? = nil, to upstreamBranch: Branch?) throws(SwiftGitXError) {
         // Get the local branch pointer
-        let branch =
-            if let localBranch {
-                localBranch
-            } else {
-                try current
-            }
+        let resolvedLocalBranch: Branch
+        if let localBranch {
+            resolvedLocalBranch = localBranch
+        } else {
+            resolvedLocalBranch = try current
+        }
 
         let localBranchPointer = try ReferenceFactory.lookupBranchPointer(
-            name: branch.name,
+            name: resolvedLocalBranch.name,
             type: GIT_BRANCH_LOCAL,
             repositoryPointer: repositoryPointer
         )
