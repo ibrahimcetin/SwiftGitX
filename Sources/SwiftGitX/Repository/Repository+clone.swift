@@ -17,7 +17,7 @@ extension Repository {
     ///
     /// - Returns: The cloned repository at the specified path.
     ///
-    /// - Throws: `RepositoryError.failedToClone` if the repository cannot be cloned.
+    /// - Throws: `SwiftGitXError` if the repository cannot be cloned.
     public static func clone(
         from remoteURL: URL,
         to localURL: URL,
@@ -44,7 +44,7 @@ extension Repository {
     ///
     /// - Returns: The cloned repository at the specified path.
     ///
-    /// - Throws: `RepositoryError.failedToClone` if the repository cannot be cloned.
+    /// - Throws: `SwiftGitXError` if the repository cannot be cloned.
     public static func clone(
         from remoteURL: URL,
         to localURL: URL,
@@ -68,7 +68,11 @@ extension Repository {
         return repository
     }
 
-    private static func clone(from remoteURL: URL, to localURL: URL, options: CloneOptions) throws -> Repository {
+    private static func clone(
+        from remoteURL: URL,
+        to localURL: URL,
+        options: CloneOptions
+    ) throws(SwiftGitXError) -> Repository {
         // Initialize the clone options
         var options = options.gitCloneOptions
 
@@ -81,15 +85,13 @@ extension Repository {
             Task.isCancelled ? 1 : 0
         }
 
-        // Repository pointer
-        var pointer: OpaquePointer?
+        let pointer = try git(operation: .clone) {
+            // Repository pointer
+            var pointer: OpaquePointer?
+            // Perform the clone operation
+            let status = git_clone(&pointer, remoteURL.absoluteString, localURL.path, &options)
 
-        // Perform the clone operation
-        let status = git_clone(&pointer, remoteURL.absoluteString, localURL.path, &options)
-
-        guard let pointer, status == GIT_OK.rawValue else {
-            let errorMessage = String(cString: git_error_last().pointee.message)
-            throw RepositoryError.failedToClone(errorMessage)
+            return (pointer, status)
         }
 
         return Repository(pointer: pointer)
@@ -100,7 +102,7 @@ extension Repository {
         to localURL: URL,
         options: CloneOptions,
         transferProgressHandler: @escaping TransferProgressHandler
-    ) throws -> Repository {
+    ) throws(SwiftGitXError) -> Repository {
         // Define the transferProgress callback
         let transferProgress: git_indexer_progress_cb = { stats, payload in
             guard let stats = stats?.pointee,
@@ -142,13 +144,10 @@ extension Repository {
         options.fetch_opts.callbacks.payload = UnsafeMutableRawPointer(transferProgressHandlerPointer)
 
         // Perform the clone operation
-        var pointer: OpaquePointer?
-
-        let status = git_clone(&pointer, remoteURL.absoluteString, localURL.path, &options)
-
-        guard let pointer, status == GIT_OK.rawValue else {
-            let errorMessage = String(cString: git_error_last().pointee.message)
-            throw RepositoryError.failedToClone(errorMessage)
+        let pointer = try git(operation: .clone) {
+            var pointer: OpaquePointer?
+            let status = git_clone(&pointer, remoteURL.absoluteString, localURL.path, &options)
+            return (pointer, status)
         }
 
         return Repository(pointer: pointer)
