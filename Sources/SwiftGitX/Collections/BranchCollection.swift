@@ -275,9 +275,9 @@ public struct BranchCollection: Sequence {
 }
 
 extension SwiftGitXError.Operation {
-    static let branchCreate = Self(rawValue: "branchCreate")
-    static let branchDelete = Self(rawValue: "branchDelete")
-    static let branchRename = Self(rawValue: "branchRename")
-    static let branchSetUpstream = Self(rawValue: "branchSetUpstream")
-    static let branchList = Self(rawValue: "branchList")
+    public static let branchCreate = Self(rawValue: "branchCreate")
+    public static let branchDelete = Self(rawValue: "branchDelete")
+    public static let branchRename = Self(rawValue: "branchRename")
+    public static let branchSetUpstream = Self(rawValue: "branchSetUpstream")
+    public static let branchList = Self(rawValue: "branchList")
 }
