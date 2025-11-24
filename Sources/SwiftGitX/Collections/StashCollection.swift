@@ -1,15 +1,12 @@
 import libgit2
 
-public enum StashCollectionError: Error, Equatable {
-    case noLocalChangesToSave
-    case failedToSave(String)
-    case failedToList(String)
-    case failedToApply(String)
-    case failedToDrop(String)
-    case failedToPop(String)
-}
-
 /// A collection of stashes and their operations.
+///
+/// `StashCollection` provides a Swift interface to libgit2's stash functionality,
+/// allowing you to save, apply, list, and remove stashed changes in a repository.
+///
+/// Stashes store uncommitted changes temporarily, creating a commit that is referenced
+/// by `refs/stash`.
 public struct StashCollection: Sequence {
     private let repositoryPointer: OpaquePointer
 
@@ -17,16 +14,14 @@ public struct StashCollection: Sequence {
         self.repositoryPointer = repositoryPointer
     }
 
-    private var errorMessage: String {
-        String(cString: git_error_last().pointee.message)
-    }
-
     /// Returns a list of stashes.
     ///
-    /// - Returns: An array of stashes.
+    /// Iterates over all stashed states in the repository.
     ///
-    /// - Throws: `StashCollectionError.failedToList` if the stashes could not be listed.
-    public func list() throws -> [StashEntry] {
+    /// - Returns: An array of ``StashEntry`` objects representing each stashed state.
+    ///
+    /// - Throws: ``SwiftGitXError`` if the stashes could not be listed.
+    public func list() throws(SwiftGitXError) -> [StashEntry] {
         // Define a context to store the stashes and the repository pointer
         class Context {
             var stashEntries: [StashEntry]
@@ -77,103 +72,109 @@ public struct StashCollection: Sequence {
             )
         }
 
-        guard status == GIT_OK.rawValue else {
-            throw StashCollectionError.failedToList("Failed to list stashes")
-        }
+        try SwiftGitXError.check(status, operation: .stashList)
 
         return context.stashEntries
     }
 
     /// Saves the local modifications to the stash.
     ///
-    /// - Parameters:
-    ///   - message: The message associated with the stash.
-    ///   - options: The options to use when saving the stash.
-    ///   - stasher: The signature of the stasher.
+    /// Creates a new commit containing the stashed state and updates the `refs/stash` reference.
     ///
-    /// - Throws: `StashCollectionError.failedToSave` if the stash could not be saved,
-    /// `StashCollectionError.noLocalChangesToSave` if there are no local changes to save,
+    /// - Parameters:
+    ///   - message: Optional description for the stashed state.
+    ///   - options: Options controlling the stashing process (see ``StashOption``).
+    ///   - stasher: The identity of the person performing the stashing. If `nil`, uses the repository's default signature.
+    ///
+    /// - Throws: ``SwiftGitXError`` if the stash could not be saved.
+    ///
+    /// - Note: Returns ``SwiftGitXError/Code/notFound`` when there's nothing to stash (no local modifications).
     public func save(
         message: String? = nil,
         options: StashOption = .default,
         stasher: Signature? = nil
-    ) throws {
+    ) throws(SwiftGitXError) {
         // Get the default signature if none is provided
-        let stasher = try stasher ?? Signature.default(in: repositoryPointer)
+        let resolvedStasher: Signature
+        if let stasher {
+            resolvedStasher = stasher
+        } else {
+            resolvedStasher = try Signature.default(in: repositoryPointer)
+        }
 
         // Create a pointer to the stasher
-        let stasherPointer = try ObjectFactory.makeSignaturePointer(signature: stasher)
+        let stasherPointer = try ObjectFactory.makeSignaturePointer(signature: resolvedStasher)
         defer { git_signature_free(stasherPointer) }
 
         // Save the local modifications to the stash
         var oid = git_oid()
-        let status = git_stash_save(
-            &oid,
-            repositoryPointer,
-            stasherPointer,
-            message,
-            options.rawValue
-        )
 
-        guard status == GIT_OK.rawValue else {
-            switch status {
-            case GIT_ENOTFOUND.rawValue:
-                throw StashCollectionError.noLocalChangesToSave
-            default:
-                throw StashCollectionError.failedToSave(errorMessage)
-            }
+        try git(operation: .stashSave) {
+            git_stash_save(
+                &oid,
+                repositoryPointer,
+                stasherPointer,
+                message,
+                options.rawValue
+            )
         }
     }
 
     // TODO: Implement apply options
     /// Applies the stash entry to the working directory.
     ///
-    /// - Parameter stashEntry: The stash entry to apply.
+    /// Applies a stashed state back onto the working directory.
+    /// The stash is not removed from the stash list.
     ///
-    /// - Throws: `StashCollectionError.failedToApply` if the stash entry could not be applied.
-    public func apply(_ stashEntry: StashEntry? = nil) throws {
+    /// - Parameter stashEntry: The stash entry to apply. If `nil`, applies the most recent stash (index 0).
+    ///
+    /// - Throws: ``SwiftGitXError`` if the stash could not be applied.
+    ///
+    /// - Note: May fail with merge conflicts. Consider handling ``SwiftGitXError/Code/mergeConflict``.
+    public func apply(_ stashEntry: StashEntry? = nil) throws(SwiftGitXError) {
         let stashIndex = stashEntry?.index ?? 0
 
         // Apply the stash entry
         // TODO: Handle GIT_EMERGECONFLICT
-        let status = git_stash_apply(repositoryPointer, stashIndex, nil)
-
-        guard status == GIT_OK.rawValue else {
-            throw StashCollectionError.failedToApply(errorMessage)
+        try git(operation: .stashApply) {
+            git_stash_apply(repositoryPointer, stashIndex, nil)
         }
     }
 
     // TODO: Implement apply options
     /// Applies the stash entry to the working directory and removes it from the stash list.
     ///
-    /// - Parameter stashEntry: The stash entry to pop.
+    /// Applies a stashed state and removes it upon successful application.
+    /// If application fails, the stash is not removed.
     ///
-    /// - Throws: `StashCollectionError.failedToPop` if the stash entry could not be popped.
-    public func pop(_ stashEntry: StashEntry? = nil) throws {
+    /// - Parameter stashEntry: The stash entry to pop. If `nil`, pops the most recent stash (index 0).
+    ///
+    /// - Throws: ``SwiftGitXError`` if the stash could not be applied or removed.
+    ///
+    /// - Note: May fail with merge conflicts. Consider handling ``SwiftGitXError/Code/mergeConflict``.
+    public func pop(_ stashEntry: StashEntry? = nil) throws(SwiftGitXError) {
         let stashIndex = stashEntry?.index ?? 0
 
         // Pop the stash entry
         // TODO: Handle GIT_EMERGECONFLICT
-        let status = git_stash_pop(repositoryPointer, stashIndex, nil)
-
-        guard status == GIT_OK.rawValue else {
-            throw StashCollectionError.failedToPop(errorMessage)
+        try git(operation: .stashPop) {
+            git_stash_pop(repositoryPointer, stashIndex, nil)
         }
     }
 
     /// Removes the stash entry from the stash list.
     ///
-    /// - Parameter stashEntry: The stash entry to drop.
+    /// Removes a single stashed state from the stash list without applying it.
     ///
-    /// - Throws: `StashCollectionError.failedToDrop` if the stash entry could not be dropped.
-    public func drop(_ stashEntry: StashEntry? = nil) throws {
+    /// - Parameter stashEntry: The stash entry to drop. If `nil`, drops the most recent stash (index 0).
+    ///
+    /// - Throws: ``SwiftGitXError`` if the stash entry could not be removed.
+    public func drop(_ stashEntry: StashEntry? = nil) throws(SwiftGitXError) {
         let stashIndex = stashEntry?.index ?? 0
 
         // Drop the stash entry
-        let status = git_stash_drop(repositoryPointer, stashIndex)
-
-        guard status == GIT_OK.rawValue else {
-            throw StashCollectionError.failedToDrop(errorMessage)
+        try git(operation: .stashDrop) {
+            git_stash_drop(repositoryPointer, stashIndex)
         }
     }
 
@@ -181,4 +182,12 @@ public struct StashCollection: Sequence {
     public func makeIterator() -> StashIterator {
         StashIterator(entries: (try? list()) ?? [])
     }
+}
+
+extension SwiftGitXError.Operation {
+    public static let stashList = Self(rawValue: "stashList")
+    public static let stashSave = Self(rawValue: "stashSave")
+    public static let stashApply = Self(rawValue: "stashApply")
+    public static let stashPop = Self(rawValue: "stashPop")
+    public static let stashDrop = Self(rawValue: "stashDrop")
 }
