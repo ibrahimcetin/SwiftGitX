@@ -11,9 +11,7 @@ extension Repository {
     /// - Parameter sorting: The sorting option for the commit history. Defaults to `.none`.
     ///
     /// - Returns: A `CommitSequence` representing the commit history.
-    ///
-    /// - Throws: A `ReferenceError.invalid` error if the reference type is invalid.
-    public func log(sorting: LogSortingOption = .none) throws -> CommitSequence {
+    public func log(sorting: LogSortingOption = .none) throws(SwiftGitXError) -> CommitSequence {
         try log(from: HEAD, sorting: sorting)
     }
 
@@ -24,13 +22,14 @@ extension Repository {
     ///   - sorting: The option to sort the commit history. Default is `.none`.
     ///
     /// - Returns: A `CommitSequence` representing the commit history.
-    ///
-    /// - Throws: A `ReferenceError.invalid` error if the reference type is invalid.
-    public func log(from reference: any Reference, sorting: LogSortingOption = .none) throws -> CommitSequence {
+    public func log(
+        from reference: any Reference,
+        sorting: LogSortingOption = .none
+    ) throws(SwiftGitXError) -> CommitSequence {
         if let commit = reference.target as? Commit {
             return log(from: commit, sorting: sorting)
         } else {
-            throw ReferenceError.invalid("Invalid reference type")
+            throw SwiftGitXError(code: .invalid, category: .reference, message: "Reference target is not a commit")
         }
     }
 
