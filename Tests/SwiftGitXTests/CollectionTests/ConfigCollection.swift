@@ -2,40 +2,40 @@ import SwiftGitX
 import XCTest
 
 final class ConfigCollectionTests: SwiftGitXTestCase {
-    func testConfigDefaultBranchName() {
+    func testConfigDefaultBranchName() throws {
         let repository = Repository.mock(named: "test-config-default-branch-name", in: Self.directory)
 
         // Set local default branch name
-        repository.config.set("feature", forKey: "init.defaultBranch")
+        try repository.config.set("feature", forKey: "init.defaultBranch")
 
-        XCTAssertEqual(repository.config.defaultBranchName, "feature")
+        XCTAssertEqual(try repository.config.defaultBranchName, "feature")
     }
 
-    func testConfigSet() {
+    func testConfigSet() throws {
         let repository = Repository.mock(named: "test-config-set", in: Self.directory)
 
         // Set local default branch name
-        repository.config.set("develop", forKey: "init.defaultBranch")
+        try repository.config.set("develop", forKey: "init.defaultBranch")
 
         // Test if the default branch name is set
-        XCTAssertEqual(repository.config.defaultBranchName, "develop")
+        XCTAssertEqual(try repository.config.defaultBranchName, "develop")
         // Global default branch name should not be changed
-        XCTAssertEqual(Repository.config.defaultBranchName, "main")
+        XCTAssertEqual(try Repository.config.defaultBranchName, "main")
     }
 
-    func testConfigString() {
+    func testConfigString() throws {
         let repository = Repository.mock(named: "test-config-string", in: Self.directory)
 
         // Set local user name and email
-        repository.config.set("İbrahim Çetin", forKey: "user.name")
-        repository.config.set("mail@ibrahimcetin.dev", forKey: "user.email")
+        try repository.config.set("İbrahim Çetin", forKey: "user.name")
+        try repository.config.set("mail@ibrahimcetin.dev", forKey: "user.email")
 
-        XCTAssertEqual(repository.config.string(forKey: "user.name"), "İbrahim Çetin")
-        XCTAssertEqual(repository.config.string(forKey: "user.email"), "mail@ibrahimcetin.dev")
+        XCTAssertEqual(try repository.config.string(forKey: "user.name"), "İbrahim Çetin")
+        XCTAssertEqual(try repository.config.string(forKey: "user.email"), "mail@ibrahimcetin.dev")
     }
 
-    func testConfigGlobalString() {
+    func testConfigGlobalString() throws {
         // Get global default branch name
-        XCTAssertEqual(Repository.config.string(forKey: "init.defaultBranch"), "main")
+        XCTAssertEqual(try Repository.config.string(forKey: "init.defaultBranch"), "main")
     }
 }
