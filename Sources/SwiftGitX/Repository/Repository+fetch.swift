@@ -27,9 +27,11 @@ extension Repository {
         }
     }
 
-    private func fetch(remote: Remote? = nil) throws {
+    // TODO: Implement options as parameter
+
+    private func fetch(remote: Remote? = nil) throws(SwiftGitXError) {
         guard let remote = remote ?? (try? branch.current.remote) ?? self.remote["origin"] else {
-            throw RepositoryError.failedToFetch("Invalid remote")
+            throw SwiftGitXError(code: .error, category: .reference, message: "Invalid remote")
         }
 
         // Lookup the remote
@@ -37,11 +39,8 @@ extension Repository {
         defer { git_remote_free(remotePointer) }
 
         // Perform the fetch operation
-        let fetchStatus = git_remote_fetch(remotePointer, nil, nil, nil)
-
-        guard fetchStatus == GIT_OK.rawValue else {
-            let errorMessage = String(cString: git_error_last().pointee.message)
-            throw RepositoryError.failedToFetch(errorMessage)
+        try git(operation: .fetch) {
+            git_remote_fetch(remotePointer, nil, nil, nil)
         }
     }
 
