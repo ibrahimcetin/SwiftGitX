@@ -8,36 +8,6 @@
 import Foundation
 import libgit2
 
-/// An enumeration that represents the possible errors that can occur in a repository.
-public enum RepositoryError: Error {
-    case failedToCreate(String)
-    case failedToClone(String)
-    case failedToOpen(String)
-
-    case failedToGetWorkingDirectory
-    case unbornHEAD
-
-    case failedToCommit(String)
-    case failedToReset(String)
-    case failedToRevert(String)
-    case failedToRestore(String)
-
-    case failedToGetHEAD(String)
-    case failedToSetHEAD(String)
-
-    case failedToSwitch(String)
-
-    case failedToGetStatus(String)
-    case failedToCreateDiff(String)
-    case failedToCreatePatch(String)
-
-    case failedToPush(String)
-    case failedToFetch(String)
-    // case failedToPull(String)
-}
-
-// MARK: - Repository
-
 /// A representation of a Git repository.
 public final class Repository {
     /// The libgit2 pointer of the repository.
