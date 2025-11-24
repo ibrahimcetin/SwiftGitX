@@ -1,11 +1,6 @@
 import Foundation
 import libgit2
 
-public enum SignatureError: Error {
-    case invalid(String)
-    case notFound(String)
-}
-
 // ? Can we use LibGit2RawRepresentable here?
 /// A signature representation in the repository.
 public struct Signature: Equatable, Hashable {
@@ -30,23 +25,14 @@ public struct Signature: Equatable, Hashable {
 }
 
 extension Signature {
-    public static func `default`(in repositoryPointer: OpaquePointer) throws -> Signature {
-        var signature: UnsafeMutablePointer<git_signature>?
-        defer { git_signature_free(signature) }
-
-        let status = git_signature_default(&signature, repositoryPointer)
-
-        guard let signature = signature?.pointee else {
-            let errorMessage = String(cString: git_error_last().pointee.message)
-
-            switch status {
-            case GIT_ENOTFOUND.rawValue:
-                throw SignatureError.notFound(errorMessage)
-            default:
-                throw SignatureError.invalid(errorMessage)
-            }
+    public static func `default`(in repositoryPointer: OpaquePointer) throws(SwiftGitXError) -> Signature {
+        let signaturePointer = try git {
+            var signaturePointer: UnsafeMutablePointer<git_signature>?
+            let status = git_signature_default(&signaturePointer, repositoryPointer)
+            return (signaturePointer, status)
         }
+        defer { git_signature_free(signaturePointer) }
 
-        return Signature(raw: signature)
+        return Signature(raw: signaturePointer.pointee)
     }
 }
