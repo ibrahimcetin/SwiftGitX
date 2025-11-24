@@ -25,7 +25,7 @@ extension Repository {
     /// ```swift
     /// let tag: Tag = try repository.show(id: treeID)
     /// ```
-    public func show<ObjectType: Object>(id: OID) throws -> ObjectType {
+    public func show<ObjectType: Object>(id: OID) throws(SwiftGitXError) -> ObjectType {
         try ObjectFactory.lookupObject(oid: id.raw, repositoryPointer: pointer) as ObjectType
     }
 }
