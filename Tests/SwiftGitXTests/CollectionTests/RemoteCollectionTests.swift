@@ -154,7 +154,13 @@ final class RemoteCollectionTests: SwiftGitXTestCase {
 
         // Add the same remote again
         XCTAssertThrowsError(try repository.remote.add(named: "origin", at: remote.url)) { error in
-            XCTAssertEqual(error as? RemoteCollectionError, .remoteAlreadyExists("remote \'origin\' already exists"))
+            XCTAssertTrue(error is SwiftGitXError)
+
+            let error = error as? SwiftGitXError
+
+            XCTAssertEqual(error?.code, .exists)
+            XCTAssertEqual(error?.category, .config)
+            XCTAssertEqual(error?.message, "remote \'origin\' already exists")
         }
     }
 
@@ -173,7 +179,13 @@ final class RemoteCollectionTests: SwiftGitXTestCase {
 
         // Remove the remote again
         XCTAssertThrowsError(try repository.remote.remove(remote)) { error in
-            XCTAssertEqual(error as? RemoteCollectionError, .failedToRemove("remote \'origin\' does not exist"))
+            XCTAssertTrue(error is SwiftGitXError)
+
+            let error = error as? SwiftGitXError
+
+            XCTAssertEqual(error?.code, .notFound)
+            XCTAssertEqual(error?.category, .config)
+            XCTAssertEqual(error?.message, "remote \'origin\' does not exist")
         }
     }
 }
