@@ -95,6 +95,15 @@ public struct SwiftGitXError: Error {
 }
 
 extension SwiftGitXError {
+    /// Initializes a SwiftGitXError with the given status code and operation.
+    ///
+    /// - Parameters:
+    ///   - status: The status code returned by a libgit2 operation.
+    ///   - operation: The operation that caused the error.
+    ///
+    /// - Returns: A SwiftGitXError with the given status code and operation.
+    ///
+    /// - Important: This initializer reads the last error from libgit2 and sets the category and message.
     private init(status: Int32, operation: Operation? = nil) {
         self.code = Code(rawValue: Int(status)) ?? .error
 
