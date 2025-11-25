@@ -137,5 +137,6 @@ extension Commit {
             && lhs.summary == rhs.summary
             && lhs.body == rhs.body
             && lhs.date == rhs.date
+            && lhs.treeID == rhs.treeID
     }
 }
