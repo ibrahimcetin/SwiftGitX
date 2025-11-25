@@ -42,7 +42,7 @@ final class RepositoryShowTests: SwiftGitXTestCase {
         let commit = try repository.mockCommit()
 
         // Get the tree of the commit
-        let tree = commit.tree
+        let tree = try commit.tree
 
         // Get the tree by id
         let treeShowed: Tree = try repository.show(id: tree.id)

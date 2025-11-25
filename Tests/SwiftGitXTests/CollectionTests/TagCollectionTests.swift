@@ -197,7 +197,7 @@ class TagCollectionTests: SwiftGitXTestCase {
         let commit = try repository.mockCommit()
 
         // Get the tree of the commit
-        let tree = commit.tree
+        let tree = try commit.tree
 
         // Create a new tag
         let lightweightTag = try repository.tag.create(named: "v1.0.0", target: tree, type: .lightweight)
@@ -227,7 +227,8 @@ class TagCollectionTests: SwiftGitXTestCase {
         let commit = try repository.mockCommit()
 
         // Get the first blob from the commit
-        let blob: Blob = commit.tree.entries.compactMap {
+        let tree = try commit.tree
+        let blob: Blob = tree.entries.compactMap {
             try? repository.show(id: $0.id)
         }.first!
 
