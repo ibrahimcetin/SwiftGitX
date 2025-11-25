@@ -32,7 +32,33 @@ public struct Commit: Object {
     public let date: Date
 
     /// The tree of the commit.
-    public let tree: Tree
+    ///
+    /// - Returns: The tree of the commit.
+    ///
+    /// ```swift
+    /// let tree = try commit.tree
+    /// ```
+    /// - Important: The tree is lazy loaded. Every time the tree is accessed, it reads the tree from the repository.
+    /// You may create a local variable to store the tree for better performance.
+    public var tree: Tree {
+        get throws(SwiftGitXError) {
+            let commitPointer = try ObjectFactory.lookupObjectPointer(
+                oid: id.raw,
+                type: GIT_OBJECT_COMMIT,
+                repositoryPointer: repositoryPointer
+            )
+            defer { git_commit_free(commitPointer) }
+
+            let treePointer = try git {
+                var tree: OpaquePointer?
+                let status = git_commit_tree(&tree, commitPointer)
+                return (tree, status)
+            }
+            defer { git_tree_free(treePointer) }
+
+            return try Tree(pointer: treePointer)
+        }
+    }
 
     /// The parent commits of the commit.
     public var parents: [Commit] {
@@ -81,13 +107,6 @@ public struct Commit: Object {
         let date = git_commit_time(pointer)
         let repositoryPointer = git_commit_owner(pointer)
 
-        let tree = try git {
-            var tree: OpaquePointer?
-            let status = git_commit_tree(&tree, pointer)
-            return (tree, status)
-        }
-        defer { git_tree_free(tree) }
-
         guard let id,
             let author = author?.pointee,
             let committer = committer?.pointee,
@@ -104,7 +123,6 @@ public struct Commit: Object {
         self.body = if let body { String(cString: body) } else { nil }
         self.summary = String(cString: summary)
         self.date = Date(timeIntervalSince1970: TimeInterval(date))
-        self.tree = try Tree(pointer: tree)
 
         self.repositoryPointer = repositoryPointer
     }
@@ -120,6 +138,5 @@ extension Commit {
             && lhs.summary == rhs.summary
             && lhs.body == rhs.body
             && lhs.date == rhs.date
-            && lhs.tree == rhs.tree
     }
 }
