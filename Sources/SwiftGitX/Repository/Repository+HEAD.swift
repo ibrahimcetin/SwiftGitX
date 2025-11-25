@@ -20,22 +20,14 @@ extension Repository {
     ///     and
     ///     [The current branch in Git](https://jvns.ca/blog/2024/03/22/the-current-branch-in-git/)
     public var HEAD: any Reference {
-        get throws {
-            var referencePointer: OpaquePointer?
-            defer { git_reference_free(referencePointer) }
-
-            // Get the HEAD reference
-            let status = git_repository_head(&referencePointer, pointer)
-
-            guard let referencePointer, status == GIT_OK.rawValue else {
-                switch status {
-                case GIT_EUNBORNBRANCH.rawValue:
-                    throw RepositoryError.unbornHEAD
-                default:
-                    let errorMessage = String(cString: git_error_last().pointee.message)
-                    throw RepositoryError.failedToGetHEAD(errorMessage)
-                }
+        get throws(SwiftGitXError) {
+            let referencePointer = try git(operation: .head) {
+                var referencePointer: OpaquePointer?
+                // Get the HEAD reference
+                let status = git_repository_head(&referencePointer, pointer)
+                return (referencePointer, status)
             }
+            defer { git_reference_free(referencePointer) }
 
             if git_repository_head_detached(pointer) == 1 {
                 // ? Should we create a type for detached HEAD named DetachedHEAD or something similar?

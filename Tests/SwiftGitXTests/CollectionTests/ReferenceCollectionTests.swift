@@ -101,7 +101,12 @@ final class ReferenceCollectionTests: SwiftGitXTestCase {
 
         // Get the branch
         XCTAssertThrowsError(try repository.reference.get(named: "refs/heads/feature")) { error in
-            XCTAssertEqual(error as? ReferenceError, .notFound)
+            XCTAssertTrue(error is SwiftGitXError)
+            let error = error as? SwiftGitXError
+
+            XCTAssertEqual(error?.code, .notFound)
+            XCTAssertEqual(error?.category, .reference)
+            XCTAssertEqual(error?.message, "reference \'refs/heads/feature\' not found")
         }
     }
 

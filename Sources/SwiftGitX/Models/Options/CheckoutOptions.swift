@@ -13,11 +13,15 @@ struct CheckoutOptions {
         self.paths = paths
     }
 
-    func withGitCheckoutOptions<T>(_ body: (git_checkout_options) throws -> T) rethrows -> T {
+    func withGitCheckoutOptions<T>(
+        _ body: (git_checkout_options) throws(SwiftGitXError) -> T
+    ) throws(SwiftGitXError) -> T {
         // Initialize the options with the default values
         var options = git_checkout_options()
-        // TODO: Throw an error if it fails
-        git_checkout_options_init(&options, UInt32(GIT_CHECKOUT_OPTIONS_VERSION))
+
+        try git {
+            git_checkout_options_init(&options, UInt32(GIT_CHECKOUT_OPTIONS_VERSION))
+        }
 
         // Set the checkout strategies
         options.checkout_strategy = strategy.rawValue

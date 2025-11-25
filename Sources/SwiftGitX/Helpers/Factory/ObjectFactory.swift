@@ -1,3 +1,10 @@
+//
+//  ObjectFactory.swift
+//  SwiftGitX
+//
+//  Created by İbrahim Çetin on 23.11.2025.
+//
+
 import libgit2
 
 /// An object factory that creates objects from pointers or object ids.
@@ -13,11 +20,17 @@ enum ObjectFactory {
     ///   - repositoryPointer: The pointer to the repository.
     ///
     /// - Returns: A object of the specified type.
-    static func lookupObject<ObjectType: Object>(oid: git_oid, repositoryPointer: OpaquePointer) throws -> ObjectType {
+    static func lookupObject<ObjectType: Object>(
+        oid: git_oid,
+        repositoryPointer: OpaquePointer
+    ) throws(SwiftGitXError) -> ObjectType {
         let object = try lookupObject(oid: oid, repositoryPointer: repositoryPointer)
 
         guard let object = object as? ObjectType else {
-            throw ObjectError.invalid("Specified object type is invalid")
+            throw SwiftGitXError(
+                code: .error, category: .object,
+                message: "Object is not of type \(ObjectType.self)"
+            )
         }
 
         return object
@@ -30,14 +43,21 @@ enum ObjectFactory {
     ///   - repositoryPointer: The pointer to the repository.
     ///
     /// - Returns: A object of type `Commit`, `Tree`, `Blob`, or `Tag` based on the type of the object.
-    static func lookupObject(oid: git_oid, repositoryPointer: OpaquePointer) throws -> any Object {
+    static func lookupObject(oid: git_oid, repositoryPointer: OpaquePointer) throws(SwiftGitXError) -> any Object {
         let pointer = try lookupObjectPointer(oid: oid, type: GIT_OBJECT_ANY, repositoryPointer: repositoryPointer)
         defer { git_object_free(pointer) }
 
         return try makeObject(pointer: pointer)
     }
 
-    static func lookupTag(name: String, repositoryPointer: OpaquePointer) throws -> Tag {
+    static func lookupCommit(oid: git_oid, repositoryPointer: OpaquePointer) throws(SwiftGitXError) -> Commit {
+        let pointer = try lookupObjectPointer(oid: oid, type: GIT_OBJECT_COMMIT, repositoryPointer: repositoryPointer)
+        defer { git_object_free(pointer) }
+
+        return try Commit(pointer: pointer)
+    }
+
+    static func lookupTag(name: String, repositoryPointer: OpaquePointer) throws(SwiftGitXError) -> Tag {
         // Add the prefix to the tag name
         let fullName = GitDirectoryConstants.tags + name
 
@@ -72,7 +92,7 @@ enum ObjectFactory {
     ///    - pointer: The opaque pointer representing the object.
     ///
     /// - Returns: A object of type `Commit`, `Tree`, `Blob`, or `Tag` based on the type of the object.
-    private static func makeObject(pointer: OpaquePointer) throws -> any Object {
+    private static func makeObject(pointer: OpaquePointer) throws(SwiftGitXError) -> any Object {
         let type = git_object_type(pointer)
 
         return switch type {
@@ -85,7 +105,7 @@ enum ObjectFactory {
         case GIT_OBJECT_TAG:
             try Tag(pointer: pointer)
         default:
-            throw ObjectError.invalid("Invalid object type")
+            throw SwiftGitXError(code: .error, category: .object, message: "Invalid object type")
         }
     }
 
@@ -98,43 +118,41 @@ enum ObjectFactory {
     ///
     /// - Returns: A pointer to the object.
     ///
-    /// - Throws: `ObjectError.invalid` if the object is not found or an error occurs.
-    ///
     /// - Important: The returned object pointer must be released with `git_object_free` when no longer needed.
     static func lookupObjectPointer(
         oid: git_oid,
         type: git_object_t,
         repositoryPointer: OpaquePointer
-    ) throws -> OpaquePointer {
-        var pointer: OpaquePointer?
-
+    ) throws(SwiftGitXError) -> OpaquePointer {
         var oid = oid
-        let status = git_object_lookup(&pointer, repositoryPointer, &oid, type)
 
-        guard let pointer, status == GIT_OK.rawValue else {
-            let errorMessage = String(cString: git_error_last().pointee.message)
-            throw ObjectError.invalid(errorMessage)
+        let objectPointer = try git {
+            var pointer: OpaquePointer?
+            // Perform the object lookup operation
+            let status = git_object_lookup(&pointer, repositoryPointer, &oid, type)
+            // Return the pointer and status
+            return (pointer, status)
         }
 
-        return pointer
+        return objectPointer
     }
 
-    static func lookupObject(revision: String, repositoryPointer: OpaquePointer) throws -> any Object {
+    static func lookupObject(revision: String, repositoryPointer: OpaquePointer) throws(SwiftGitXError) -> any Object {
         let objectPointer = try lookupObjectPointer(revision: revision, repositoryPointer: repositoryPointer)
         defer { git_object_free(objectPointer) }
 
         return try makeObject(pointer: objectPointer)
     }
 
-    static func lookupObjectPointer(revision: String, repositoryPointer: OpaquePointer) throws -> OpaquePointer {
-        var objectPointer: OpaquePointer?
-
-        // Lookup the object by its revision
-        let status = git_revparse_single(&objectPointer, repositoryPointer, revision)
-
-        guard let objectPointer, status == GIT_OK.rawValue else {
-            let errorMessage = String(cString: git_error_last().pointee.message)
-            throw ObjectError.invalid(errorMessage)
+    static func lookupObjectPointer(
+        revision: String,
+        repositoryPointer: OpaquePointer
+    ) throws(SwiftGitXError) -> OpaquePointer {
+        let objectPointer = try git {
+            var pointer: OpaquePointer?
+            // Perform the object lookup operation
+            let status = git_revparse_single(&pointer, repositoryPointer, revision)
+            return (pointer, status)
         }
 
         return objectPointer
@@ -153,7 +171,7 @@ enum ObjectFactory {
         oid: git_oid,
         targetType: git_object_t,
         repositoryPointer: OpaquePointer
-    ) throws -> OpaquePointer {
+    ) throws(SwiftGitXError) -> OpaquePointer {
         // Lookup the object by its object id
         let objectPointer = try ObjectFactory.lookupObjectPointer(
             oid: oid,
@@ -162,17 +180,14 @@ enum ObjectFactory {
         )
         defer { git_object_free(objectPointer) }
 
-        // Create a pointer to the peeled object
-        var peeledPointer: OpaquePointer?
-
-        // Peel the object to the specified type
-        let status = git_object_peel(&peeledPointer, objectPointer, targetType)
-
-        guard let peeledPointer, status == GIT_OK.rawValue else {
-            let errorMessage = String(cString: git_error_last().pointee.message)
-            throw ObjectError.invalid(errorMessage)
+        let peeledPointer = try git {
+            var pointer: OpaquePointer?
+            // Perform the object peel operation
+            let status = git_object_peel(&pointer, objectPointer, targetType)
+            return (pointer, status)
         }
 
+        // Create a pointer to the peeled object
         return peeledPointer
     }
 
@@ -185,20 +200,19 @@ enum ObjectFactory {
     /// - Throws: `SignatureError.invalid` if the signature is invalid or an error occurs.
     ///
     /// - Important: The returned signature pointer must be released with `git_signature_free` when no longer needed.
-    static func makeSignaturePointer(signature: Signature) throws -> UnsafeMutablePointer<git_signature> {
-        var signaturePointer: UnsafeMutablePointer<git_signature>?
-
-        let status = git_signature_new(
-            &signaturePointer,
-            signature.name,
-            signature.email,
-            git_time_t(signature.date.timeIntervalSince1970),
-            Int32(signature.timezone.secondsFromGMT() / 60)
-        )
-
-        guard let signaturePointer, status == GIT_OK.rawValue else {
-            let errorMessage = String(cString: git_error_last().pointee.message)
-            throw SignatureError.invalid(errorMessage)
+    static func makeSignaturePointer(signature: Signature) throws(SwiftGitXError) -> UnsafeMutablePointer<git_signature>
+    {
+        let signaturePointer = try git {
+            var pointer: UnsafeMutablePointer<git_signature>?
+            // Perform the signature creation operation
+            let status = git_signature_new(
+                &pointer,
+                signature.name,
+                signature.email,
+                git_time_t(signature.date.timeIntervalSince1970),
+                Int32(signature.timezone.secondsFromGMT() / 60)
+            )
+            return (pointer, status)
         }
 
         return signaturePointer

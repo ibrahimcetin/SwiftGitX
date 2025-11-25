@@ -15,7 +15,7 @@ extension Repository {
     /// - Throws: `RepositoryError.failedToSwitch` if the switch operation fails.
     ///
     /// If the branch does not exist locally, the method tries to find a remote branch with the same name.
-    public func `switch`(to branch: Branch) throws {
+    public func `switch`(to branch: Branch) throws(SwiftGitXError) {
         // Get the list of local branches. Use list(.local) to throw an error if the operation fails.
         let localBranchExists = try self.branch.list(.local).map(\.fullName).contains(branch.fullName)
 
@@ -33,7 +33,10 @@ extension Repository {
                 // Set the HEAD to the reference
                 try setHEAD(to: localBranch)
             } else {
-                throw RepositoryError.failedToSwitch("Failed to checkout the reference")
+                throw SwiftGitXError(
+                    code: .error, category: .repository,
+                    message: "Failed to switch to the branch \(branch.fullName)"
+                )
             }
         }
     }
@@ -45,7 +48,7 @@ extension Repository {
     /// - Throws: `RepositoryError.failedToSwitch` if the switch operation fails.
     ///
     /// The repository will be in a detached HEAD state after switching to the tag.
-    public func `switch`(to tag: Tag) throws {
+    public func `switch`(to tag: Tag) throws(SwiftGitXError) {
         // Perform the checkout operation
         try checkout(commitID: tag.target.id)
 
@@ -60,7 +63,7 @@ extension Repository {
     /// - Throws: `RepositoryError.failedToSwitch` if the switch operation fails.
     ///
     /// The repository will be in a detached HEAD state after switching to the commit.
-    public func `switch`(to commit: Commit) throws {
+    public func `switch`(to commit: Commit) throws(SwiftGitXError) {
         // Perform the checkout operation
         try checkout(commitID: commit.id)
 
@@ -69,7 +72,7 @@ extension Repository {
     }
 
     // TODO: Implement checkout options as parameter
-    private func checkout(commitID: OID) throws {
+    private func checkout(commitID: OID) throws(SwiftGitXError) {
         // Lookup the commit
         let commitPointer = try ObjectFactory.lookupObjectPointer(
             oid: commitID.raw,
@@ -84,34 +87,25 @@ extension Repository {
         options.checkout_strategy = GIT_CHECKOUT_SAFE.rawValue
 
         // Perform the checkout operation
-        let checkoutStatus = git_checkout_tree(pointer, commitPointer, &options)
-
-        guard checkoutStatus == GIT_OK.rawValue else {
-            let errorMessage = String(cString: git_error_last().pointee.message)
-            throw RepositoryError.failedToSwitch(errorMessage)
+        try git(operation: .checkout) {
+            git_checkout_tree(pointer, commitPointer, &options)
         }
     }
 
-    private func setHEAD(to reference: any Reference) throws {
-        let status = git_repository_set_head(pointer, reference.fullName)
-
-        guard status == GIT_OK.rawValue else {
-            let errorMessage = String(cString: git_error_last().pointee.message)
-            throw RepositoryError.failedToSetHEAD(errorMessage)
+    private func setHEAD(to reference: any Reference) throws(SwiftGitXError) {
+        try git {
+            git_repository_set_head(pointer, reference.fullName)
         }
     }
 
-    private func setHEAD(to commit: Commit) throws {
+    private func setHEAD(to commit: Commit) throws(SwiftGitXError) {
         var commitID = commit.id.raw
-        let status = git_repository_set_head_detached(pointer, &commitID)
-
-        guard status == GIT_OK.rawValue else {
-            let errorMessage = String(cString: git_error_last().pointee.message)
-            throw RepositoryError.failedToSetHEAD(errorMessage)
+        try git {
+            git_repository_set_head_detached(pointer, &commitID)
         }
     }
 
-    private func guessBranch(named branchName: String) throws -> Branch? {
+    private func guessBranch(named branchName: String) throws(SwiftGitXError) -> Branch? {
         // Get the list of remotes
         for remote in try remote.list() {
             // Get the list of remote branches for each remote

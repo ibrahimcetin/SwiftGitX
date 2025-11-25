@@ -9,6 +9,8 @@ import Foundation
 import libgit2
 
 extension Repository {
+    // TODO: Fix blocking async - libgit2 calls block Swift's cooperative threads. Find a way to make it non-blocking.
+
     /// Clone a repository from the specified URL to the specified path.
     ///
     /// - Parameters:
@@ -17,58 +19,12 @@ extension Repository {
     ///
     /// - Returns: The cloned repository at the specified path.
     ///
-    /// - Throws: `RepositoryError.failedToClone` if the repository cannot be cloned.
-    public static func clone(
+    /// - Throws: `SwiftGitXError` if the repository cannot be cloned.
+    public nonisolated static func clone(
         from remoteURL: URL,
         to localURL: URL,
         options: CloneOptions = .default
-    ) async throws -> Repository {
-        let repository = try await withUnsafeThrowingContinuation { continuation in
-            do {
-                let clonedRepository = try clone(from: remoteURL, to: localURL, options: options)
-                continuation.resume(returning: clonedRepository)
-            } catch {
-                continuation.resume(throwing: error)
-            }
-        }
-
-        return repository
-    }
-
-    /// Clone a repository from the specified URL to the specified path with a transfer progress handler.
-    ///
-    /// - Parameters:
-    ///   - url: The URL of the repository to clone.
-    ///   - path: The path to clone the repository to.
-    ///   - transferProgressHandler: A closure that is called with the transfer progress.
-    ///
-    /// - Returns: The cloned repository at the specified path.
-    ///
-    /// - Throws: `RepositoryError.failedToClone` if the repository cannot be cloned.
-    public static func clone(
-        from remoteURL: URL,
-        to localURL: URL,
-        options: CloneOptions = .default,
-        transferProgressHandler: @escaping TransferProgressHandler
-    ) async throws -> Repository {
-        let repository = try await withUnsafeThrowingContinuation { continuation in
-            do {
-                let clonedRepository = try cloneWithProgress(
-                    from: remoteURL,
-                    to: localURL,
-                    options: options,
-                    transferProgressHandler: transferProgressHandler
-                )
-                continuation.resume(returning: clonedRepository)
-            } catch {
-                continuation.resume(throwing: error)
-            }
-        }
-
-        return repository
-    }
-
-    private static func clone(from remoteURL: URL, to localURL: URL, options: CloneOptions) throws -> Repository {
+    ) async throws(SwiftGitXError) -> Repository {
         // Initialize the clone options
         var options = options.gitCloneOptions
 
@@ -81,26 +37,34 @@ extension Repository {
             Task.isCancelled ? 1 : 0
         }
 
-        // Repository pointer
-        var pointer: OpaquePointer?
+        let pointer = try git(operation: .clone) {
+            // Repository pointer
+            var pointer: OpaquePointer?
+            // Perform the clone operation
+            let status = git_clone(&pointer, remoteURL.absoluteString, localURL.path, &options)
 
-        // Perform the clone operation
-        let status = git_clone(&pointer, remoteURL.absoluteString, localURL.path, &options)
-
-        guard let pointer, status == GIT_OK.rawValue else {
-            let errorMessage = String(cString: git_error_last().pointee.message)
-            throw RepositoryError.failedToClone(errorMessage)
+            return (pointer, status)
         }
 
         return Repository(pointer: pointer)
     }
 
-    private static func cloneWithProgress(
+    /// Clone a repository from the specified URL to the specified path with a transfer progress handler.
+    ///
+    /// - Parameters:
+    ///   - url: The URL of the repository to clone.
+    ///   - path: The path to clone the repository to.
+    ///   - transferProgressHandler: A closure that is called with the transfer progress.
+    ///
+    /// - Returns: The cloned repository at the specified path.
+    ///
+    /// - Throws: `SwiftGitXError` if the repository cannot be cloned.
+    public nonisolated static func clone(
         from remoteURL: URL,
         to localURL: URL,
-        options: CloneOptions,
+        options: CloneOptions = .default,
         transferProgressHandler: @escaping TransferProgressHandler
-    ) throws -> Repository {
+    ) async throws(SwiftGitXError) -> Repository {
         // Define the transferProgress callback
         let transferProgress: git_indexer_progress_cb = { stats, payload in
             guard let stats = stats?.pointee,
@@ -142,13 +106,10 @@ extension Repository {
         options.fetch_opts.callbacks.payload = UnsafeMutableRawPointer(transferProgressHandlerPointer)
 
         // Perform the clone operation
-        var pointer: OpaquePointer?
-
-        let status = git_clone(&pointer, remoteURL.absoluteString, localURL.path, &options)
-
-        guard let pointer, status == GIT_OK.rawValue else {
-            let errorMessage = String(cString: git_error_last().pointee.message)
-            throw RepositoryError.failedToClone(errorMessage)
+        let pointer = try git(operation: .clone) {
+            var pointer: OpaquePointer?
+            let status = git_clone(&pointer, remoteURL.absoluteString, localURL.path, &options)
+            return (pointer, status)
         }
 
         return Repository(pointer: pointer)

@@ -24,7 +24,7 @@ extension Repository {
     ///
     /// The behavior of `git diff HEAD` can be achieved by using `diff(to: [.workingTree, .staged])`.
     /// With this options, it creates diff from HEAD to index and index to working tree and combines them.
-    public func diff(to diffOption: DiffOption = .workingTree) throws -> Diff {
+    public func diff(to diffOption: DiffOption = .workingTree) throws(SwiftGitXError) -> Diff {
         // TODO: Implement diff options and source commit as parameter
 
         // Get the HEAD commit
@@ -54,15 +54,12 @@ extension Repository {
             case [.workingTree, .index]:
                 git_diff_tree_to_workdir_with_index(&diffPointer, pointer, headTreePointer, nil)
             default:
-                throw RepositoryError.failedToCreateDiff("Invalid diff option")
+                throw SwiftGitXError(code: .error, category: .invalid, message: "Invalid diff option")
             }
 
-        guard let diffPointer, diffStatus == GIT_OK.rawValue else {
-            let errorMessage = String(cString: git_error_last().pointee.message)
-            throw RepositoryError.failedToCreateDiff(errorMessage)
-        }
+        let validDiffPointer = try SwiftGitXError.check(diffStatus, pointer: diffPointer, operation: .diff)
 
-        return Diff(pointer: diffPointer)
+        return Diff(pointer: validDiffPointer)
     }
 
     /// Get the diff between given commit and its parent.
@@ -72,7 +69,7 @@ extension Repository {
     /// - Returns: The diff between the commit and its parent.
     ///
     /// - Throws: `RepositoryError.failedToGetDiff` if the diff operation fails.
-    public func diff(commit: Commit) throws -> Diff {
+    public func diff(commit: Commit) throws(SwiftGitXError) -> Diff {
         let parents = try commit.parents
 
         return if parents.isEmpty {
@@ -95,7 +92,7 @@ extension Repository {
     ///
     /// - Warning: The objects should be commit, tree, or tag objects.
     /// Blob objects are not supported.
-    public func diff(from fromObject: any Object, to toObject: any Object) throws -> Diff {
+    public func diff(from fromObject: any Object, to toObject: any Object) throws(SwiftGitXError) -> Diff {
         // TODO: Implement diff options
 
         // Get the tree pointers
@@ -114,21 +111,18 @@ extension Repository {
         defer { git_object_free(toObjectTreePointer) }
 
         // Get the diff object
-        var diffPointer: OpaquePointer?
-        defer { git_diff_free(diffPointer) }
-
-        let diffStatus = git_diff_tree_to_tree(
-            &diffPointer,
-            pointer,
-            fromObjectTreePointer,
-            toObjectTreePointer,
-            nil
-        )
-
-        guard let diffPointer, diffStatus == GIT_OK.rawValue else {
-            let errorMessage = String(cString: git_error_last().pointee.message)
-            throw RepositoryError.failedToCreateDiff(errorMessage)
+        let diffPointer = try git {
+            var diffPointer: OpaquePointer?
+            let status = git_diff_tree_to_tree(
+                &diffPointer,
+                pointer,
+                fromObjectTreePointer,
+                toObjectTreePointer,
+                nil
+            )
+            return (diffPointer, status)
         }
+        defer { git_diff_free(diffPointer) }
 
         return Diff(pointer: diffPointer)
     }

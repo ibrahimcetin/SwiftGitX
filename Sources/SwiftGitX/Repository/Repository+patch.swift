@@ -26,7 +26,7 @@ extension Repository {
     /// So, you have to use ``patch(from:to:)-957bd`` method to create patch for the workingTree file.
     /// If the file's status is ``StatusEntry/Status-swift.enum/workingTreeNew`` (aka `untracked`)
     /// you should use ``patch(from:to:)-957bd`` method with `nil` oldBlob.
-    public func patch(from oldBlob: Blob?, to newBlob: Blob?) throws -> Patch {
+    public func patch(from oldBlob: Blob?, to newBlob: Blob?) throws(SwiftGitXError) -> Patch {
         let oldBlobPointer: OpaquePointer?
         let newBlobPointer: OpaquePointer?
 
@@ -52,16 +52,12 @@ extension Repository {
         defer { git_object_free(newBlobPointer) }
 
         // Create the patch object
-        var patchPointer: OpaquePointer?
-        defer { git_patch_free(patchPointer) }
-
-        let patchStatus = git_patch_from_blobs(
-            &patchPointer, oldBlobPointer, nil, newBlobPointer, nil, nil)
-
-        guard let patchPointer, patchStatus == GIT_OK.rawValue else {
-            let errorMessage = String(cString: git_error_last().pointee.message)
-            throw RepositoryError.failedToCreatePatch(errorMessage)
+        let patchPointer = try git(operation: .patch) {
+            var patchPointer: OpaquePointer?
+            let status = git_patch_from_blobs(&patchPointer, oldBlobPointer, nil, newBlobPointer, nil, nil)
+            return (patchPointer, status)
         }
+        defer { git_patch_free(patchPointer) }
 
         return Patch(pointer: patchPointer)
     }
@@ -73,7 +69,7 @@ extension Repository {
     ///   - file: URL of the file for new side of patch.
     ///
     /// - Returns: The created patch.
-    public func patch(from blob: Blob?, to file: URL) throws -> Patch {
+    public func patch(from blob: Blob?, to file: URL) throws(SwiftGitXError) -> Patch {
         // Get the blob pointer if not nil
         let blobPointer: OpaquePointer?
 
@@ -88,26 +84,28 @@ extension Repository {
         defer { git_object_free(blobPointer) }
 
         // Get the new file content
-        let fileContent = try Data(contentsOf: file) as NSData
+        let fileContent: NSData
+        do {
+            fileContent = try NSData(contentsOf: file)
+        } catch {
+            throw SwiftGitXError(code: .error, category: .filesystem, message: "Failed to read file content")
+        }
 
         // Create the patch object
-        var patchPointer: OpaquePointer?
-        defer { git_patch_free(patchPointer) }
-
-        let patchStatus = git_patch_from_blob_and_buffer(
-            &patchPointer,
-            blobPointer,
-            nil,
-            fileContent.bytes,
-            fileContent.count,
-            nil,
-            nil
-        )
-
-        guard let patchPointer, patchStatus == GIT_OK.rawValue else {
-            let errorMessage = String(cString: git_error_last().pointee.message)
-            throw RepositoryError.failedToCreatePatch(errorMessage)
+        let patchPointer = try git(operation: .patch) {
+            var patchPointer: OpaquePointer?
+            let status = git_patch_from_blob_and_buffer(
+                &patchPointer,
+                blobPointer,
+                nil,
+                fileContent.bytes,
+                fileContent.count,
+                nil,
+                nil
+            )
+            return (patchPointer, status)
         }
+        defer { git_patch_free(patchPointer) }
 
         return Patch(pointer: patchPointer)
     }
@@ -121,7 +119,7 @@ extension Repository {
     /// This method does not support all diff delta types.
     /// It only supports ``Diff/DeltaType/untracked``, ``Diff/DeltaType/added``, and ``Diff/DeltaType/modified`` types,
     /// for now.
-    public func patch(from delta: Diff.Delta) throws -> Patch? {
+    public func patch(from delta: Diff.Delta) throws(SwiftGitXError) -> Patch? {
         // TODO: Complete the all cases
         switch delta.type {
         case .untracked:

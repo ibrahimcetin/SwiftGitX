@@ -1,6 +1,9 @@
-public enum ObjectError: Error {
-    case invalid(String)
-}
+//
+//  Object.swift
+//  SwiftGitX
+//
+//  Created by İbrahim Çetin on 24.11.2025.
+//
 
 /// An object representation that can be stored in a Git repository.
 public protocol Object: Identifiable, Equatable, Hashable {

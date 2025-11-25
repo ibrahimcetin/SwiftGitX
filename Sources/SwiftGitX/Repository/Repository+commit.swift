@@ -16,28 +16,23 @@ extension Repository {
     ///
     /// - Returns: The created commit.
     ///
-    /// - Throws: `RepositoryError.failedToCommit` if the commit operation fails.
-    ///
     /// This method uses the default author and committer information.
     @discardableResult
-    public func commit(message: String, options: CommitOptions = .default) throws -> Commit {
+    public func commit(message: String, options: CommitOptions = .default) throws(SwiftGitXError) -> Commit {
         // Create a new commit from the index
         var oid = git_oid()
         var gitOptions = options.gitCommitCreateOptions
 
-        let status = git_commit_create_from_stage(
-            &oid,
-            pointer,
-            message,
-            &gitOptions
-        )
-
-        guard status == GIT_OK.rawValue else {
-            let errorMessage = String(cString: git_error_last().pointee.message)
-            throw RepositoryError.failedToCommit(errorMessage)
+        try git(operation: .commit) {
+            git_commit_create_from_stage(
+                &oid,
+                pointer,
+                message,
+                &gitOptions
+            )
         }
 
         // Lookup the resulting commit
-        return try ObjectFactory.lookupObject(oid: oid, repositoryPointer: pointer)
+        return try ObjectFactory.lookupCommit(oid: oid, repositoryPointer: pointer)
     }
 }

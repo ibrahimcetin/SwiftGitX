@@ -1,12 +1,12 @@
+//
+//  RemoteCollection.swift
+//  SwiftGitX
+//
+//  Created by İbrahim Çetin on 24.11.2025.
+//
+
 import Foundation
 import libgit2
-
-public enum RemoteCollectionError: Error, Equatable {
-    case failedToList(String)
-    case failedToAdd(String)
-    case failedToRemove(String)
-    case remoteAlreadyExists(String)
-}
 
 /// A collection of remotes and their operations.
 public struct RemoteCollection: Sequence {
@@ -14,14 +14,6 @@ public struct RemoteCollection: Sequence {
 
     init(repositoryPointer: OpaquePointer) {
         self.repositoryPointer = repositoryPointer
-    }
-
-    // * I am not sure calling `git_error_last()` from a computed property is safe.
-    // * Because libgit2 docs say that "The error message is thread-local. The git_error_last() call must happen on the
-    // * same thread as the error in order to get the message."
-    // * But, I think it is worth a try.
-    private var errorMessage: String {
-        String(cString: git_error_last().pointee.message)
     }
 
     /// Retrieves a remote by its name.
@@ -38,7 +30,7 @@ public struct RemoteCollection: Sequence {
     /// - Parameter name: The name of the remote.
     ///
     /// - Returns: The remote with the specified name.
-    public func get(named name: String) throws -> Remote {
+    public func get(named name: String) throws(SwiftGitXError) -> Remote {
         let remotePointer = try ReferenceFactory.lookupRemotePointer(name: name, repositoryPointer: repositoryPointer)
         defer { git_remote_free(remotePointer) }
 
@@ -49,12 +41,10 @@ public struct RemoteCollection: Sequence {
     ///
     /// - Returns: An array of remotes.
     ///
-    /// - Throws: `RemoteCollectionError.failedToList` if the remotes could not be listed.
-    ///
     /// If you want to iterate over the remotes, you can use the `makeIterator()` method.
     /// Iterator continues to the next remote even if an error occurs while getting the remote.
-    public func list() throws -> [Remote] {
-        let remotes = try remoteNames.map { remoteName in
+    public func list() throws(SwiftGitXError) -> [Remote] {
+        let remotes = try remoteNames.map { (remoteName) throws(SwiftGitXError) -> Remote in
             try get(named: remoteName)
         }
 
@@ -68,24 +58,14 @@ public struct RemoteCollection: Sequence {
     ///   - url: The URL of the remote.
     ///
     /// - Returns: The remote that was added.
-    ///
-    /// - Throws: `RemoteCollectionError.failedToAdd` if the remote could not be added.
     @discardableResult
-    public func add(named name: String, at url: URL) throws -> Remote {
-        var remotePointer: OpaquePointer?
-        defer { git_remote_free(remotePointer) }
-
-        // Create a new remote
-        let status = git_remote_create(&remotePointer, repositoryPointer, name, url.absoluteString)
-
-        guard let remotePointer, status == GIT_OK.rawValue else {
-            switch status {
-            case GIT_EEXISTS.rawValue:
-                throw RemoteCollectionError.remoteAlreadyExists(errorMessage)
-            default:
-                throw RemoteCollectionError.failedToAdd(errorMessage)
-            }
+    public func add(named name: String, at url: URL) throws(SwiftGitXError) -> Remote {
+        let remotePointer = try git(operation: .remoteAdd) {
+            var remotePointer: OpaquePointer?
+            let status = git_remote_create(&remotePointer, repositoryPointer, name, url.absoluteString)
+            return (remotePointer, status)
         }
+        defer { git_remote_free(remotePointer) }
 
         return try Remote(pointer: remotePointer)
     }
@@ -93,13 +73,9 @@ public struct RemoteCollection: Sequence {
     /// Remove a remote from the repository.
     ///
     /// - Parameter remote: The remote to remove.
-    ///
-    /// - Throws: `RemoteCollectionError.failedToRemove` if the remote could not be removed.
-    public func remove(_ remote: Remote) throws {
-        let status = git_remote_delete(repositoryPointer, remote.name)
-
-        guard status == GIT_OK.rawValue else {
-            throw RemoteCollectionError.failedToRemove(errorMessage)
+    public func remove(_ remote: Remote) throws(SwiftGitXError) {
+        try git(operation: .remoteRemove) {
+            git_remote_delete(repositoryPointer, remote.name)
         }
     }
 
@@ -108,16 +84,14 @@ public struct RemoteCollection: Sequence {
     }
 
     private var remoteNames: [String] {
-        get throws {
+        get throws(SwiftGitXError) {
             // Create a list to store the remote names
             var array = git_strarray()
             defer { git_strarray_free(&array) }
 
             // Get the remote names
-            let status = git_remote_list(&array, repositoryPointer)
-
-            guard status == GIT_OK.rawValue else {
-                throw RemoteCollectionError.failedToList(errorMessage)
+            try git(operation: .remoteList) {
+                git_remote_list(&array, repositoryPointer)
             }
 
             // Create a list to store the remote names
@@ -127,7 +101,10 @@ public struct RemoteCollection: Sequence {
             for index in 0..<array.count {
                 guard let rawRemoteName = array.strings.advanced(by: index).pointee
                 else {
-                    throw RemoteCollectionError.failedToList("Failed to get remote name at index \(index)")
+                    throw SwiftGitXError(
+                        code: .notFound, category: .invalid,
+                        message: "Failed to get remote name at index \(index)"
+                    )
                 }
 
                 let remoteName = String(cString: rawRemoteName)
@@ -137,4 +114,10 @@ public struct RemoteCollection: Sequence {
             return remoteNames
         }
     }
+}
+
+extension SwiftGitXError.Operation {
+    public static let remoteList = Self(rawValue: "remoteList")
+    public static let remoteAdd = Self(rawValue: "remoteAdd")
+    public static let remoteRemove = Self(rawValue: "remoteRemove")
 }

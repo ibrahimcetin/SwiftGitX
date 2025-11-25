@@ -1,13 +1,11 @@
-import libgit2
+//
+//  BranchCollection.swift
+//  SwiftGitX
+//
+//  Created by İbrahim Çetin on 24.11.2025.
+//
 
-public enum BranchCollectionError: Error {
-    case failedToList(String)
-    case failedToCreate(String)
-    case failedToDelete(String)
-    case failedToRename(String)
-    case failedToGetCurrent(String)
-    case failedToSetUpstream(String)
-}
+import libgit2
 
 /// A collection of branches and their operations.
 public struct BranchCollection: Sequence {
@@ -15,14 +13,6 @@ public struct BranchCollection: Sequence {
 
     init(repositoryPointer: OpaquePointer) {
         self.repositoryPointer = repositoryPointer
-    }
-
-    // * I am not sure calling `git_error_last()` from a computed property is safe.
-    // * Because libgit2 docs say that "The error message is thread-local. The git_error_last() call must happen on the
-    // * same thread as the error in order to get the message."
-    // * But, I think it is worth a try.
-    private var errorMessage: String {
-        String(cString: git_error_last().pointee.message)
     }
 
     /// The local branches in the repository.
@@ -39,20 +29,25 @@ public struct BranchCollection: Sequence {
     ///
     /// - Returns: The current branch.
     ///
-    /// - Throws: `BranchCollectionError.failedToGetCurrent` if the current branch could not be retrieved.
     /// If the repository is in a detached HEAD state, an error will be thrown.
     ///
     /// This is the branch that the repository's HEAD is pointing to.
     public var current: Branch {
-        get throws {
-            var branchPointer: OpaquePointer?
+        get throws(SwiftGitXError) {
+            let branchPointer = try git(operation: .head) {
+                var branchPointer: OpaquePointer?
+                let status = git_repository_head(&branchPointer, repositoryPointer)
+                return (branchPointer, status)
+            }
             defer { git_reference_free(branchPointer) }
 
-            let status = git_repository_head(&branchPointer, repositoryPointer)
-
-            guard let branchPointer, status == GIT_OK.rawValue,
-                git_reference_is_branch(branchPointer) == 1
-            else { throw BranchCollectionError.failedToGetCurrent(errorMessage) }
+            guard git_reference_is_branch(branchPointer) == 1
+            else {
+                throw SwiftGitXError(
+                    code: .error, category: .reference,
+                    message: "HEAD is not a branch. It may be in a detached HEAD state."
+                )
+            }
 
             return try Branch(pointer: branchPointer)
         }
@@ -73,7 +68,7 @@ public struct BranchCollection: Sequence {
     /// For example, `main` for a local branch and `origin/main` for a remote branch.
     ///
     /// - Returns: The branch with the specified name.
-    public func get(named name: String, type: BranchType = .all) throws -> Branch {
+    public func get(named name: String, type: BranchType = .all) throws(SwiftGitXError) -> Branch {
         let branchPointer = try ReferenceFactory.lookupBranchPointer(
             name: name,
             type: type.raw,
@@ -89,36 +84,33 @@ public struct BranchCollection: Sequence {
     /// - Parameter type: The type of branches to list. Default is `.all`.
     ///
     /// - Returns: An array of branches.
-    public func list(_ type: BranchType = .all) throws -> [Branch] {
+    public func list(_ type: BranchType = .all) throws(SwiftGitXError) -> [Branch] {
         // Create a branch iterator
-        var branchIterator: OpaquePointer?
-        defer { git_branch_iterator_free(branchIterator) }
-
-        let status = git_branch_iterator_new(&branchIterator, repositoryPointer, type.raw)
-
-        guard let branchIterator, status == GIT_OK.rawValue else {
-            throw BranchCollectionError.failedToList(errorMessage)
+        let branchIterator = try git(operation: .branchList) {
+            var branchIterator: OpaquePointer?
+            let status = git_branch_iterator_new(&branchIterator, repositoryPointer, type.raw)
+            return (branchIterator, status)
         }
+        defer { git_branch_iterator_free(branchIterator) }
 
         var branches = [Branch]()
         var branchType = type.raw
 
         while true {
-            var branchPointer: OpaquePointer?
-            defer { git_reference_free(branchPointer) }
+            do {
+                let branchPointer = try git(operation: .branchList) {
+                    var branchPointer: OpaquePointer?
+                    let status = git_branch_next(&branchPointer, &branchType, branchIterator)
+                    return (branchPointer, status)
+                }
+                defer { git_reference_free(branchPointer) }
 
-            let nextStatus = git_branch_next(&branchPointer, &branchType, branchIterator)
-
-            if nextStatus == GIT_ITEROVER.rawValue {
-                break
-            } else if nextStatus != GIT_OK.rawValue {
-                throw BranchCollectionError.failedToList(errorMessage)
-            } else if let branchPointer {
-                // Create a branch
                 let branch = try Branch(pointer: branchPointer)
                 branches.append(branch)
-            } else {
-                throw BranchCollectionError.failedToList("Failed to get branch")
+            } catch  where error.code == .iterOver {
+                break
+            } catch {
+                throw error
             }
         }
 
@@ -136,7 +128,7 @@ public struct BranchCollection: Sequence {
     ///
     /// - Throws: `BranchCollectionError.failedToCreate` if the branch could not be created.
     @discardableResult
-    public func create(named name: String, target: Commit, force: Bool = false) throws -> Branch {
+    public func create(named name: String, target: Commit, force: Bool = false) throws(SwiftGitXError) -> Branch {
         // Lookup the target commit
         let targetPointer = try ObjectFactory.lookupObjectPointer(
             oid: target.id.raw,
@@ -146,14 +138,12 @@ public struct BranchCollection: Sequence {
         defer { git_object_free(targetPointer) }
 
         // Create the branch
-        var branchPointer: OpaquePointer?
-        defer { git_reference_free(branchPointer) }
-
-        let status = git_branch_create(&branchPointer, repositoryPointer, name, targetPointer, force ? 1 : 0)
-
-        guard let branchPointer, status == GIT_OK.rawValue else {
-            throw BranchCollectionError.failedToCreate(errorMessage)
+        let branchPointer = try git(operation: .branchCreate) {
+            var branchPointer: OpaquePointer?
+            let status = git_branch_create(&branchPointer, repositoryPointer, name, targetPointer, force ? 1 : 0)
+            return (branchPointer, status)
         }
+        defer { git_reference_free(branchPointer) }
 
         return try Branch(pointer: branchPointer)
     }
@@ -166,16 +156,18 @@ public struct BranchCollection: Sequence {
     ///   - force: If `true`, the branch will be overwritten if it already exists. Default is `false`.
     ///
     /// - Returns: The newly created `Branch` object.
-    ///
-    /// - Throws: `BranchCollectionError.failedToCreate` if the branch could not be created.
     @discardableResult
-    public func create(named name: String, from fromBranch: Branch, force: Bool = false) throws -> Branch {
+    public func create(
+        named name: String,
+        from fromBranch: Branch,
+        force: Bool = false
+    ) throws(SwiftGitXError) -> Branch {
         guard fromBranch.type == .local else {
-            throw BranchCollectionError.failedToCreate("Branch must be a local branch")
+            throw SwiftGitXError(code: .invalid, category: .reference, message: "Branch must be a local branch")
         }
 
         guard let target = fromBranch.target as? Commit else {
-            throw BranchCollectionError.failedToCreate("Failed to get target commit")
+            throw SwiftGitXError(code: .invalid, category: .reference, message: "Branch target is not a commit")
         }
 
         return try create(named: name, target: target, force: force)
@@ -186,7 +178,7 @@ public struct BranchCollection: Sequence {
     /// - Parameter branch: The branch to be deleted.
     ///
     /// - Throws: `BranchCollectionError.failedToDelete` if the branch could not be deleted.
-    public func delete(_ branch: Branch) throws {
+    public func delete(_ branch: Branch) throws(SwiftGitXError) {
         let branchPointer = try ReferenceFactory.lookupBranchPointer(
             name: branch.name,
             type: BranchType.local.raw,
@@ -195,10 +187,8 @@ public struct BranchCollection: Sequence {
         defer { git_reference_free(branchPointer) }
 
         // Delete the branch
-        let deleteStatus = git_branch_delete(branchPointer)
-
-        guard deleteStatus == GIT_OK.rawValue else {
-            throw BranchCollectionError.failedToDelete(errorMessage)
+        try git(operation: .branchDelete) {
+            git_branch_delete(branchPointer)
         }
     }
 
@@ -213,7 +203,7 @@ public struct BranchCollection: Sequence {
     ///
     /// - Throws: `BranchCollectionError.failedToRename` if the branch could not be renamed.
     @discardableResult
-    public func rename(_ branch: Branch, to newName: String, force: Bool = false) throws -> Branch {
+    public func rename(_ branch: Branch, to newName: String, force: Bool = false) throws(SwiftGitXError) -> Branch {
         let branchPointer = try ReferenceFactory.lookupBranchPointer(
             name: branch.name,
             type: BranchType.local.raw,
@@ -222,15 +212,12 @@ public struct BranchCollection: Sequence {
         defer { git_reference_free(branchPointer) }
 
         // New branch pointer
-        var newBranchPointer: OpaquePointer?
-        defer { git_reference_free(newBranchPointer) }
-
-        // Rename the branch
-        let renameStatus = git_branch_move(&newBranchPointer, branchPointer, newName, force ? 1 : 0)
-
-        guard let newBranchPointer, renameStatus == GIT_OK.rawValue else {
-            throw BranchCollectionError.failedToRename(errorMessage)
+        let newBranchPointer = try git(operation: .branchRename) {
+            var newBranchPointer: OpaquePointer?
+            let status = git_branch_move(&newBranchPointer, branchPointer, newName, force ? 1 : 0)
+            return (newBranchPointer, status)
         }
+        defer { git_reference_free(newBranchPointer) }
 
         return try Branch(pointer: newBranchPointer)
     }
@@ -246,20 +233,25 @@ public struct BranchCollection: Sequence {
     /// If the `localBranch` is not specified, the current branch will be used.
     ///
     /// If the `upstreamBranch` is specified `nil`, the upstream branch will be unset.
-    public func setUpstream(from localBranch: Branch? = nil, to upstreamBranch: Branch?) throws {
+    public func setUpstream(from localBranch: Branch? = nil, to upstreamBranch: Branch?) throws(SwiftGitXError) {
         // Get the local branch pointer
+        let resolvedLocalBranch: Branch
+        if let localBranch {
+            resolvedLocalBranch = localBranch
+        } else {
+            resolvedLocalBranch = try current
+        }
+
         let localBranchPointer = try ReferenceFactory.lookupBranchPointer(
-            name: (localBranch ?? current).name,
+            name: resolvedLocalBranch.name,
             type: GIT_BRANCH_LOCAL,
             repositoryPointer: repositoryPointer
         )
         defer { git_reference_free(localBranchPointer) }
 
         // Set the upstream branch
-        let status = git_branch_set_upstream(localBranchPointer, upstreamBranch?.name)
-
-        guard status == GIT_OK.rawValue else {
-            throw BranchCollectionError.failedToSetUpstream(errorMessage)
+        try git(operation: .branchSetUpstream) {
+            git_branch_set_upstream(localBranchPointer, upstreamBranch?.name)
         }
     }
 
@@ -280,4 +272,12 @@ public struct BranchCollection: Sequence {
     public func makeIterator() -> BranchIterator {
         BranchIterator(type: .all, repositoryPointer: repositoryPointer)
     }
+}
+
+extension SwiftGitXError.Operation {
+    public static let branchCreate = Self(rawValue: "branchCreate")
+    public static let branchDelete = Self(rawValue: "branchDelete")
+    public static let branchRename = Self(rawValue: "branchRename")
+    public static let branchSetUpstream = Self(rawValue: "branchSetUpstream")
+    public static let branchList = Self(rawValue: "branchList")
 }

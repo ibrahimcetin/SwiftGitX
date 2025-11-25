@@ -16,20 +16,10 @@ extension Repository {
     ///
     /// If the remote is not specified, the upstream of the current branch is used
     /// and if the upstream branch is not found, the `origin` remote is used.
-    public func fetch(remote: Remote? = nil) async throws {
-        try await withUnsafeThrowingContinuation { continuation in
-            do {
-                try fetch(remote: remote)
-                continuation.resume()
-            } catch {
-                continuation.resume(throwing: error)
-            }
-        }
-    }
-
-    private func fetch(remote: Remote? = nil) throws {
+    // TODO: Implement options as parameter
+    public nonisolated func fetch(remote: Remote? = nil) async throws(SwiftGitXError) {
         guard let remote = remote ?? (try? branch.current.remote) ?? self.remote["origin"] else {
-            throw RepositoryError.failedToFetch("Invalid remote")
+            throw SwiftGitXError(code: .notFound, category: .reference, message: "Remote not found")
         }
 
         // Lookup the remote
@@ -37,11 +27,8 @@ extension Repository {
         defer { git_remote_free(remotePointer) }
 
         // Perform the fetch operation
-        let fetchStatus = git_remote_fetch(remotePointer, nil, nil, nil)
-
-        guard fetchStatus == GIT_OK.rawValue else {
-            let errorMessage = String(cString: git_error_last().pointee.message)
-            throw RepositoryError.failedToFetch(errorMessage)
+        try git(operation: .fetch) {
+            git_remote_fetch(remotePointer, nil, nil, nil)
         }
     }
 

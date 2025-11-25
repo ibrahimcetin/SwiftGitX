@@ -35,7 +35,11 @@ final class StashCollectionTests: SwiftGitXTestCase {
 
         // Create a new stash entry
         XCTAssertThrowsError(try repository.stash.save()) { error in
-            XCTAssertEqual(error as? StashCollectionError, .noLocalChangesToSave)
+            let error = error as? SwiftGitXError
+
+            XCTAssertEqual(error?.code, .notFound)
+            XCTAssertEqual(error?.category, .stash)
+            XCTAssertEqual(error?.message, "cannot stash changes - there is nothing to stash.")
         }
     }
 

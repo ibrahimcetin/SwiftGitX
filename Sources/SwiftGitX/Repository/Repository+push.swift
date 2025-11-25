@@ -16,22 +16,10 @@ extension Repository {
     ///
     /// If the remote is not specified, the upstream of the current branch is used
     /// and if the upstream branch is not found, the `origin` remote is used.
-    public func push(remote: Remote? = nil) async throws {
-        try await withUnsafeThrowingContinuation { continuation in
-            do {
-                try push(remote: remote)
-                continuation.resume()
-            } catch {
-                continuation.resume(throwing: error)
-            }
-        }
-    }
-
     // TODO: Implement options of these methods
-
-    private func push(remote: Remote? = nil) throws {
+    public nonisolated func push(remote: Remote? = nil) async throws(SwiftGitXError) {
         guard let remote = remote ?? (try? branch.current.remote) ?? self.remote["origin"] else {
-            throw RepositoryError.failedToPush("Invalid remote")
+            throw SwiftGitXError(code: .notFound, category: .reference, message: "Remote not found")
         }
 
         // Lookup the remote
@@ -43,11 +31,8 @@ extension Repository {
         defer { git_strarray_free(&refspecs) }
 
         // Perform the push operation
-        let pushStatus = git_remote_push(remotePointer, &refspecs, nil)
-
-        guard pushStatus == GIT_OK.rawValue else {
-            let errorMessage = String(cString: git_error_last().pointee.message)
-            throw RepositoryError.failedToPush(errorMessage)
+        try git(operation: .push) {
+            git_remote_push(remotePointer, &refspecs, nil)
         }
     }
 }

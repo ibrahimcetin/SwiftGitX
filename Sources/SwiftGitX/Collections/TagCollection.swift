@@ -1,9 +1,11 @@
-import libgit2
+//
+//  TagCollection.swift
+//  SwiftGitX
+//
+//  Created by İbrahim Çetin on 24.11.2025.
+//
 
-public enum TagCollectionError: Error {
-    case failedToList(String)
-    case failedToCreate(String)
-}
+import libgit2
 
 /// A collection of tags and their operations.
 public struct TagCollection: Sequence {
@@ -13,31 +15,21 @@ public struct TagCollection: Sequence {
         self.repositoryPointer = repositoryPointer
     }
 
-    // * I am not sure calling `git_error_last()` from a computed property is safe.
-    // * Because libgit2 docs say that "The error message is thread-local. The git_error_last() call must happen on the
-    // * same thread as the error in order to get the message."
-    // * But, I think it is worth a try.
-    private var errorMessage: String {
-        String(cString: git_error_last().pointee.message)
-    }
-
     public subscript(name: String) -> Tag? {
         try? get(named: name)
     }
 
-    public func get(named name: String) throws -> Tag {
+    public func get(named name: String) throws(SwiftGitXError) -> Tag {
         try ObjectFactory.lookupTag(name: name, repositoryPointer: repositoryPointer)
     }
 
     // TODO: Maybe we can write it as TagIterator
-    public func list() throws -> [Tag] {
+    public func list() throws(SwiftGitXError) -> [Tag] {
         var array = git_strarray()
         defer { git_strarray_free(&array) }
 
-        let status = git_tag_list(&array, repositoryPointer)
-
-        guard status == GIT_OK.rawValue else {
-            throw TagCollectionError.failedToList(errorMessage)
+        try git(operation: .tagList) {
+            git_tag_list(&array, repositoryPointer)
         }
 
         var tags = [Tag]()
@@ -63,8 +55,6 @@ public struct TagCollection: Sequence {
     ///
     /// - Returns: The created `Tag` object.
     ///
-    /// - Throws: `TagCollectionError.failedToCreate` if the tag could not be created.
-    ///
     /// - Note: If the tag already exists and `force` is `false`, an error will be thrown.
     @discardableResult
     public func create(
@@ -74,7 +64,7 @@ public struct TagCollection: Sequence {
         tagger: Signature? = nil,
         message: String? = nil,
         force: Bool = false
-    ) throws -> Tag {
+    ) throws(SwiftGitXError) -> Tag {
         let targetPointer = try ObjectFactory.lookupObjectPointer(
             oid: target.id.raw,
             type: GIT_OBJECT_ANY,
@@ -87,39 +77,40 @@ public struct TagCollection: Sequence {
         switch type {
         case .annotated:
             // Get the default signature if none is provided
-            let tagger = try tagger ?? Signature.default(in: repositoryPointer)
+            let resolvedTagger: Signature
+            if let tagger {
+                resolvedTagger = tagger
+            } else {
+                resolvedTagger = try Signature.default(in: repositoryPointer)
+            }
 
             // Create a pointer to the tagger
-            let taggerPointer = try ObjectFactory.makeSignaturePointer(signature: tagger)
+            let taggerPointer = try ObjectFactory.makeSignaturePointer(signature: resolvedTagger)
             defer { git_signature_free(taggerPointer) }
 
             // Create an annotated tag
-            let status = git_tag_create(
-                &tagID,
-                repositoryPointer,
-                name,
-                targetPointer,
-                taggerPointer,
-                message ?? "",
-                force ? 1 : 0
-            )
-
-            guard status == GIT_OK.rawValue else {
-                throw TagCollectionError.failedToCreate(errorMessage)
+            try git(operation: .tagCreate) {
+                git_tag_create(
+                    &tagID,
+                    repositoryPointer,
+                    name,
+                    targetPointer,
+                    taggerPointer,
+                    message ?? "",
+                    force ? 1 : 0
+                )
             }
 
         case .lightweight:
             // Create a lightweight tag
-            let status = git_tag_create_lightweight(
-                &tagID,
-                repositoryPointer,
-                name,
-                targetPointer,
-                force ? 1 : 0
-            )
-
-            guard status == GIT_OK.rawValue else {
-                throw TagCollectionError.failedToCreate(errorMessage)
+            try git(operation: .tagCreate) {
+                git_tag_create_lightweight(
+                    &tagID,
+                    repositoryPointer,
+                    name,
+                    targetPointer,
+                    force ? 1 : 0
+                )
             }
         }
 
@@ -130,4 +121,9 @@ public struct TagCollection: Sequence {
     public func makeIterator() -> TagIterator {
         TagIterator(repositoryPointer: repositoryPointer)
     }
+}
+
+extension SwiftGitXError.Operation {
+    public static let tagList = Self(rawValue: "tagList")
+    public static let tagCreate = Self(rawValue: "tagCreate")
 }

@@ -1,9 +1,9 @@
-import libgit2
-
-public enum ReferenceError: Error, Equatable {
-    case invalid(String)
-    case notFound
-}
+//
+//  Reference.swift
+//  SwiftGitX
+//
+//  Created by İbrahim Çetin on 24.11.2025.
+//
 
 /// A reference representation in a Git repository.
 public protocol Reference: Equatable, Hashable {

@@ -12,6 +12,11 @@ final class ObjectTests: SwiftGitXTestCase {
         // Check if the OID hex is correct
         XCTAssertEqual(oid.hex, shaHex)
 
+        let raw = oid.raw
+        XCTAssertEqual(oid, OID(raw: raw))
+        XCTAssertEqual(oid.abbreviated, OID(raw: raw).abbreviated)
+        XCTAssertEqual(oid.hex, OID(raw: raw).hex)
+
         // Check if the OID abbreviated is correct
         let abbreviatedSHA = "42a02b34"
         XCTAssertEqual(oid.abbreviated, abbreviatedSHA)

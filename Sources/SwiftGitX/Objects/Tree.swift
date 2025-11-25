@@ -1,8 +1,11 @@
-import libgit2
+//
+//  Tree.swift
+//  SwiftGitX
+//
+//  Created by İbrahim Çetin on 24.11.2025.
+//
 
-public enum TreeError: Error {
-    case invalid(String)
-}
+import libgit2
 
 /// A tree representation in the repository.
 ///
@@ -22,13 +25,12 @@ public struct Tree: Object {
     /// The type of the object.
     public let type: ObjectType = .tree
 
-    init(pointer: OpaquePointer) throws {
+    init(pointer: OpaquePointer) throws(SwiftGitXError) {
         // Get the id of the tree
         let id = git_tree_id(pointer)
 
         guard let id = id?.pointee else {
-            let errorMessage = String(cString: git_error_last().pointee.message)
-            throw TreeError.invalid(errorMessage)
+            throw SwiftGitXError(code: .error, category: .tree, message: "Invalid tree")
         }
 
         // Get the number of entries in the tree
@@ -41,7 +43,7 @@ public struct Tree: Object {
             let entryPointer = git_tree_entry_byindex(pointer, index)
 
             guard let entryPointer else {
-                throw TreeError.invalid("Invalid tree entry")
+                throw SwiftGitXError(code: .error, category: .tree, message: "Invalid tree entry")
             }
 
             let entry = try Entry(pointer: entryPointer)
@@ -69,14 +71,14 @@ extension Tree {
         /// The file mode of the entry (permissions)
         public let mode: FileMode
 
-        init(pointer: OpaquePointer) throws {
+        init(pointer: OpaquePointer) throws(SwiftGitXError) {
             let id = git_tree_entry_id(pointer)
             let name = git_tree_entry_name(pointer)
             let type = git_tree_entry_type(pointer)
             let mode = git_tree_entry_filemode(pointer)
 
             guard let id, let name else {
-                throw TreeError.invalid("Invalid tree entry")
+                throw SwiftGitXError(code: .error, category: .tree, message: "Invalid tree entry")
             }
 
             self.id = OID(raw: id.pointee)

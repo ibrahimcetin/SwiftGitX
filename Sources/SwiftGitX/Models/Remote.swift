@@ -1,12 +1,12 @@
+//
+//  Remote.swift
+//  SwiftGitX
+//
+//  Created by İbrahim Çetin on 24.11.2025.
+//
+
 import Foundation
 import libgit2
-
-public enum RemoteError: Error, Equatable {
-    case invalid(String)
-    case notFound(String)
-    case failedToConnect(String)
-    case unableToGetBranches(String)
-}
 
 /// A remote representation in the repository.
 public struct Remote: Equatable, Hashable {
@@ -31,7 +31,7 @@ public struct Remote: Equatable, Hashable {
     ///
     /// - Parameter pointer: The opaque pointer representing the remote.
     /// - Throws: A `RemoteError` if the remote is invalid or if the URLs are invalid.
-    init(pointer: OpaquePointer) throws {
+    init(pointer: OpaquePointer) throws(SwiftGitXError) {
         // Get the remote name, URL, and push URL
         let name = git_remote_name(pointer)
         let url = git_remote_url(pointer)
@@ -40,8 +40,7 @@ public struct Remote: Equatable, Hashable {
 
         // Check if the remote name and url pointers are valid
         guard let name, let url, let repositoryPointer else {
-            let errorMessage = String(cString: git_error_last().pointee.message)
-            throw RemoteError.invalid(errorMessage)
+            throw SwiftGitXError(code: .error, category: .reference, message: "Remote is invalid")
         }
 
         // Set the name
@@ -49,7 +48,7 @@ public struct Remote: Equatable, Hashable {
 
         // Check if the URL is valid
         guard let url = URL(string: String(cString: url)) else {
-            throw RemoteError.invalid("Invalid URL")
+            throw SwiftGitXError(code: .error, category: .reference, message: "Invalid remote URL")
         }
 
         self.url = url

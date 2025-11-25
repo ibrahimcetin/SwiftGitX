@@ -1,9 +1,11 @@
-import libgit2
+//
+//  SwiftGitX.swift
+//  SwiftGitX
+//
+//  Created by İbrahim Çetin on 23.11.2025.
+//
 
-public enum SwiftGitXError: Error {
-    case failedToInitialize(String)
-    case failedToShutdown(String)
-}
+import libgit2
 
 /// The main entry point for the SwiftGitX library.
 public enum SwiftGitX {
@@ -16,14 +18,11 @@ public enum SwiftGitX {
     /// This function may be called multiple times. It will return the number of times the initialization has been
     /// called (including this one) that have not subsequently been shutdown.
     @discardableResult
-    public static func initialize() throws -> Int {
+    public static func initialize() throws(SwiftGitXError) -> Int {
         // Initialize the libgit2 library
         let status = git_libgit2_init()
 
-        guard status >= 0 else {
-            let errorMessage = String(cString: git_error_last().pointee.message)
-            throw SwiftGitXError.failedToInitialize(errorMessage)
-        }
+        try SwiftGitXError.check(status, operation: .initialize)
 
         return Int(status)
     }
@@ -35,14 +34,11 @@ public enum SwiftGitX {
     /// Clean up the global state and threading context after calling it as many times as ``initialize()`` was called.
     /// It will return the number of remaining initializations that have not been shutdown (after this one).
     @discardableResult
-    public static func shutdown() throws -> Int {
+    public static func shutdown() throws(SwiftGitXError) -> Int {
         // Shutdown the libgit2 library
         let status = git_libgit2_shutdown()
 
-        guard status >= 0 else {
-            let errorMessage = String(cString: git_error_last().pointee.message)
-            throw SwiftGitXError.failedToShutdown(errorMessage)
-        }
+        try SwiftGitXError.check(status, operation: .shutdown)
 
         return Int(status)
     }
@@ -57,4 +53,9 @@ public enum SwiftGitX {
 
         return "\(major).\(minor).\(patch)"
     }
+}
+
+extension SwiftGitXError.Operation {
+    public static let initialize = Self(rawValue: "initialize")
+    public static let shutdown = Self(rawValue: "shutdown")
 }

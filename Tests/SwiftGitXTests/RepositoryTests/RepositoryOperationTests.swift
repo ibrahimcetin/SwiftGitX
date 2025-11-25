@@ -55,12 +55,12 @@ final class RepositoryOperationTests: SwiftGitXTestCase {
 
         // Verify that committing with no changes fails by default
         XCTAssertThrowsError(try repository.commit(message: "Empty commit without option")) { error in
-            // Expect a failedToCommit error
-            if case RepositoryError.failedToCommit = error {
-                // Expected error
-            } else {
-                XCTFail("Expected failedToCommit error, got \(error)")
-            }
+            XCTAssertTrue(error is SwiftGitXError)
+            let error = error as? SwiftGitXError
+
+            XCTAssertEqual(error?.code, .unchanged)
+            XCTAssertEqual(error?.category, .repository)
+            XCTAssertEqual(error?.message, "no changes are staged for commit")
         }
 
         // Verify that committing with allowEmpty option succeeds
