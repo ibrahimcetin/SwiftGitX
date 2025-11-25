@@ -47,7 +47,7 @@ public struct Commit: Object {
                 type: GIT_OBJECT_TREE,
                 repositoryPointer: repositoryPointer
             )
-            defer { git_tree_free(treePointer) }
+            defer { git_object_free(treePointer) }
 
             return try Tree(pointer: treePointer)
         }
