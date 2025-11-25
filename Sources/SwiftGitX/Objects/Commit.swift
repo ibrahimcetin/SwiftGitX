@@ -42,23 +42,19 @@ public struct Commit: Object {
     /// You may create a local variable to store the tree for better performance.
     public var tree: Tree {
         get throws(SwiftGitXError) {
-            let commitPointer = try ObjectFactory.lookupObjectPointer(
-                oid: id.raw,
-                type: GIT_OBJECT_COMMIT,
+            let treePointer = try ObjectFactory.lookupObjectPointer(
+                oid: treeID.raw,
+                type: GIT_OBJECT_TREE,
                 repositoryPointer: repositoryPointer
             )
-            defer { git_commit_free(commitPointer) }
-
-            let treePointer = try git {
-                var tree: OpaquePointer?
-                let status = git_commit_tree(&tree, commitPointer)
-                return (tree, status)
-            }
             defer { git_tree_free(treePointer) }
 
             return try Tree(pointer: treePointer)
         }
     }
+
+    /// The OID of the tree (stored for efficient lazy loading)
+    private let treeID: OID
 
     /// The parent commits of the commit.
     public var parents: [Commit] {
@@ -105,12 +101,14 @@ public struct Commit: Object {
         let body = git_commit_body(pointer)
         let summary = git_commit_summary(pointer)
         let date = git_commit_time(pointer)
+        let treeID = git_commit_tree_id(pointer)?.pointee
         let repositoryPointer = git_commit_owner(pointer)
 
         guard let id,
             let author = author?.pointee,
             let committer = committer?.pointee,
             let message, let summary,
+            let treeID,
             let repositoryPointer
         else {
             throw SwiftGitXError(code: .error, category: .object, message: "Invalid commit")
@@ -123,6 +121,7 @@ public struct Commit: Object {
         self.body = if let body { String(cString: body) } else { nil }
         self.summary = String(cString: summary)
         self.date = Date(timeIntervalSince1970: TimeInterval(date))
+        self.treeID = OID(raw: treeID)
 
         self.repositoryPointer = repositoryPointer
     }
