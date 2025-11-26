@@ -1,20 +1,21 @@
+import Foundation
 import SwiftGitX
-import XCTest
+import Testing
 
-final class StashCollectionTests: SwiftGitXTestCase {
-    func testStashSave() throws {
-        // Create a new repository at the temporary directory
-        let repository = Repository.mock(named: "test-stash-save", in: Self.directory)
+@Suite("Stash Collection", .tags(.stash, .collection))
+final class StashCollectionTests: SwiftGitXTest {
+    @Test("Save changes to stash")
+    func stashSave() async throws {
+        let repository = mockRepository()
 
         // Create mock commit
         try repository.mockCommit()
 
         // Create a file
-        let fileURL = try URL(fileURLWithPath: "test.txt", relativeTo: repository.workingDirectory)
-        FileManager.default.createFile(atPath: fileURL.path, contents: Data("Stash me!".utf8))
+        let file2 = try repository.mockFile()
 
         // Stage the file
-        try repository.add(path: fileURL.lastPathComponent)
+        try repository.add(file: file2)
 
         // Create a new stash entry
         try repository.stash.save()
@@ -23,36 +24,32 @@ final class StashCollectionTests: SwiftGitXTestCase {
         let stashes = try repository.stash.list()
 
         // Check the stash entries
-        XCTAssertEqual(stashes.count, 1)
+        #expect(stashes.count == 1)
     }
 
-    func testStashSaveFailure() throws {
-        // Create a new repository at the temporary directory
-        let repository = Repository.mock(named: "test-stash-save-failure", in: Self.directory)
-
-        // Create mock commit
+    @Test("Save with nothing to stash throws error")
+    func stashSaveFailure() async throws {
+        let repository = mockRepository()
         try repository.mockCommit()
 
-        // Create a new stash entry
-        XCTAssertThrowsError(try repository.stash.save()) { error in
-            let error = error as? SwiftGitXError
-
-            XCTAssertEqual(error?.code, .notFound)
-            XCTAssertEqual(error?.category, .stash)
-            XCTAssertEqual(error?.message, "cannot stash changes - there is nothing to stash.")
+        // Create a new stash entry (should throw)
+        let error = #expect(throws: SwiftGitXError.self) {
+            try repository.stash.save()
         }
+
+        #expect(error?.code == .notFound)
+        #expect(error?.category == .stash)
+        #expect(error?.message == "cannot stash changes - there is nothing to stash.")
     }
 
-    func testStashList() throws {
-        // Create a new repository at the temporary directory
-        let repository = Repository.mock(named: "test-stash-list", in: Self.directory)
-
-        // Create mock commit
+    @Test("Include untracked files in stash")
+    func stashIncludeUntracked() async throws {
+        let repository = mockRepository()
         try repository.mockCommit()
 
         for index in 0..<5 {
             // Create a file
-            _ = try repository.mockFile(named: "test\(index).txt", content: "Stash me!")
+            _ = try repository.mockFile()
 
             // Create a new stash
             try repository.stash.save(message: "Stashed \(index)!", options: .includeUntracked)
@@ -62,19 +59,17 @@ final class StashCollectionTests: SwiftGitXTestCase {
         let stashes = try repository.stash.list()
 
         // Check the stash entries
-        XCTAssertEqual(stashes.count, 5)
+        #expect(stashes.count == 5)
     }
 
-    func testStashIterator() throws {
-        // Create a new repository at the temporary directory
-        let repository = Repository.mock(named: "test-stash-iterator", in: Self.directory)
-
-        // Create mock commit
+    @Test("Iterate over stash entries")
+    func stashIterator() async throws {
+        let repository = mockRepository()
         try repository.mockCommit()
 
         for index in 0..<5 {
             // Create a file
-            _ = try repository.mockFile(named: "test-\(index).txt", content: "Stash me!")
+            _ = try repository.mockFile()
 
             // Create a new stash
             try repository.stash.save(message: "Stashed \(index)!", options: .includeUntracked)
@@ -82,27 +77,24 @@ final class StashCollectionTests: SwiftGitXTestCase {
 
         // Iterate over the stash entries
         for (index, entry) in repository.stash.enumerated() {
-            XCTAssertEqual(entry.index, index)
-            XCTAssertEqual(entry.message, "On main: Stashed \(4 - index)!")
+            #expect(entry.index == index)
+            #expect(entry.message == "On main: Stashed \(4 - index)!")
         }
     }
 
-    func testStashApply() throws {
-        // Create a new repository at the temporary directory
-        let repository = Repository.mock(named: "test-stash-apply", in: Self.directory)
-
-        // Create mock commit
+    @Test("Apply stash keeps stash entry")
+    func stashApply() async throws {
+        let repository = mockRepository()
         try repository.mockCommit()
 
         // Create a file
-        let fileURL = try URL(fileURLWithPath: "test.txt", relativeTo: repository.workingDirectory)
-        FileManager.default.createFile(atPath: fileURL.path, contents: Data("Stash me!".utf8))
+        let file2 = try repository.mockFile()
 
         // Create a new stash entry
         try repository.stash.save(options: .includeUntracked)
 
-        XCTAssertEqual(try repository.stash.list().count, 1)
-        XCTAssertFalse(FileManager.default.fileExists(atPath: fileURL.path))
+        #expect(try repository.stash.list().count == 1)
+        #expect(FileManager.default.fileExists(atPath: file2.path) == false)
 
         // Apply the stash entry
         try repository.stash.apply()
@@ -111,50 +103,44 @@ final class StashCollectionTests: SwiftGitXTestCase {
         let stashes = try repository.stash.list()
 
         // Check the stash entries
-        XCTAssertEqual(stashes.count, 1)  // The stash should still exist
-        XCTAssertTrue(FileManager.default.fileExists(atPath: fileURL.path))
-        XCTAssertEqual(try String(contentsOf: fileURL), "Stash me!")
+        #expect(stashes.count == 1)  // The stash should still exist
+        #expect(FileManager.default.fileExists(atPath: file2.path) == true)
+        #expect(try String(contentsOf: file2) == "File 2 content\n")
     }
 
-    func testStashPop() throws {
-        // Create a new repository at the temporary directory
-        let repository = Repository.mock(named: "test-stash-pop", in: Self.directory)
-
-        // Create mock commit
+    @Test("Pop stash removes stash entry")
+    func stashPop() async throws {
+        let repository = mockRepository()
         try repository.mockCommit()
 
         // Create a file
-        let fileURL = try URL(fileURLWithPath: "test.txt", relativeTo: repository.workingDirectory)
-        FileManager.default.createFile(atPath: fileURL.path, contents: Data("Stash me!".utf8))
+        let file2 = try repository.mockFile()
 
         // Create a new stash entry
         try repository.stash.save(options: .includeUntracked)
 
-        XCTAssertEqual(try repository.stash.list().count, 1)
-        XCTAssertFalse(FileManager.default.fileExists(atPath: fileURL.path))
+        #expect(try repository.stash.list().count == 1)
+        #expect(FileManager.default.fileExists(atPath: file2.path) == false)
 
-        // Apply the stash entry
+        // Pop the stash entry
         try repository.stash.pop()
 
         // List the stashes
         let stashes = try repository.stash.list()
 
         // Check the stash entries
-        XCTAssertEqual(stashes.count, 0)  // The stash should be removed
-        XCTAssertTrue(FileManager.default.fileExists(atPath: fileURL.path))
-        XCTAssertEqual(try String(contentsOf: fileURL), "Stash me!")
+        #expect(stashes.count == 0)  // The stash should be removed
+        #expect(FileManager.default.fileExists(atPath: file2.path) == true)
+        #expect(try String(contentsOf: file2) == "File 2 content\n")
     }
 
-    func testStashDrop() throws {
-        // Create a new repository at the temporary directory
-        let repository = Repository.mock(named: "test-stash-drop", in: Self.directory)
-
-        // Create mock commit
+    @Test("Drop stash removes stash without applying")
+    func stashDrop() async throws {
+        let repository = mockRepository()
         try repository.mockCommit()
 
         // Create a file
-        let fileURL = try URL(fileURLWithPath: "test.txt", relativeTo: repository.workingDirectory)
-        FileManager.default.createFile(atPath: fileURL.path, contents: Data("Stash me!".utf8))
+        let file2 = try repository.mockFile()
 
         // Create a new stash entry
         try repository.stash.save(options: .includeUntracked)
@@ -166,7 +152,13 @@ final class StashCollectionTests: SwiftGitXTestCase {
         let stashes = try repository.stash.list()
 
         // Check the stash entries
-        XCTAssertEqual(stashes.count, 0)
-        XCTAssertFalse(FileManager.default.fileExists(atPath: fileURL.path))
+        #expect(stashes.count == 0)
+        #expect(FileManager.default.fileExists(atPath: file2.path) == false)
     }
+}
+
+// MARK: - Tag Extensions
+
+extension Testing.Tag {
+    @Tag static var stash: Self
 }
