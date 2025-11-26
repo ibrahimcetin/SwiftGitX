@@ -33,6 +33,69 @@ class SwiftGitXTest {
         String(describing: Self.self)
     }
 
+    /// Creates a new mock repository with auto-generated unique name based on the calling test.
+    ///
+    /// This method automatically generates a unique repository name using the file and function
+    /// where it's called, making it perfect for parallel test execution.
+    ///
+    /// - Parameters:
+    ///   - fileID: Automatically captured file identifier.
+    ///   - function: Automatically captured function name.
+    ///   - isBare: Whether to create a bare repository.
+    ///
+    /// - Returns: The created repository.
+    func mockRepository(
+        fileID: String = #fileID,
+        function: String = #function,
+        isBare: Bool = false
+    ) -> Repository {
+        // Create a new mock directory
+        let directory = mockDirectory(fileID: fileID, function: function)
+
+        // Create the repository
+        return try! Repository.create(at: directory, isBare: isBare)
+    }
+
+    /// Creates a new mock directory with auto-generated unique name based on the calling test.
+    ///
+    /// This method automatically generates a unique directory name using the file and function
+    /// where it's called, making it perfect for parallel test execution.
+    ///
+    /// - Parameters:
+    ///   - fileID: Automatically captured file identifier.
+    ///   - function: Automatically captured function name.
+    ///   - create: Whether to create the directory or not (default: false).
+    ///
+    /// - Returns: The created directory.
+    func mockDirectory(fileID: String = #fileID, function: String = #function, create: Bool = false) -> URL {
+        // Get the suite name
+        let suiteName = String(describing: Self.self)
+
+        // Extract file name from fileID
+        // fileID format: "SwiftGitXTests/Collections/BranchCollectionTests.swift"
+        let fileName = fileID.components(separatedBy: "/").last!.replacing(".swift", with: "")
+
+        // Extract function name
+        // function format: "testBranchLookup()" or "branchLookup()"
+        let functionName = function.replacing("()", with: "").replacing("test", with: "")
+
+        // Create the directory
+        let directory = URL.temporaryDirectory
+            .appending(components: "SwiftGitXTests", fileName, suiteName, functionName)
+
+        // Remove the directory if it already exists to create an empty repository
+        if FileManager.default.fileExists(atPath: directory.path) {
+            try! FileManager.default.removeItem(at: directory)
+        }
+
+        // Create the directory
+        if create {
+            try! FileManager.default.createDirectory(at: directory, withIntermediateDirectories: false)
+        }
+
+        return directory
+    }
+
     init() throws {
         try SwiftGitXRuntime.initialize()
     }
