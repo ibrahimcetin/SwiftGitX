@@ -105,21 +105,21 @@ class SwiftGitXTest {
     }
 }
 
-// Test the SwiftGitX struct to initialize and shutdown the library
-@Suite("SwiftGitX Tests", .tags(.swiftGitX), .serialized)
-struct SwiftGitXTests {
-    @Test("Test SwiftGitX Initialize")
-    func testSwiftGitXInitialize() async throws {
-        // Initialize the SwiftGitX library
+// Test the SwiftGitXRuntime enum to initialize and shutdown the library
+@Suite("SwiftGitX Runtime Tests", .tags(.runtime), .serialized)
+struct SwiftGitXRuntimeTests {
+    @Test("Test SwiftGitXRuntime Initialize")
+    func initialize() async throws {
+        // Initialize the SwiftGitXRuntime
         let count = try SwiftGitXRuntime.initialize()
 
         // Check if the initialization count is valid
         #expect(count > 0)
     }
 
-    @Test("Test SwiftGitX Shutdown")
-    func testSwiftGitXShutdown() async throws {
-        // Shutdown the SwiftGitX library
+    @Test("Test SwiftGitXRuntime Shutdown")
+    func shutdown() async throws {
+        // Shutdown the SwiftGitXRuntime
         let count = try SwiftGitXRuntime.shutdown()
 
         // Check if the shutdown count is valid
@@ -127,19 +127,17 @@ struct SwiftGitXTests {
     }
 
     @Test(
-        "Test SwiftGitX Shutdown Without Calling Initialize",
+        "Test SwiftGitXRuntime Shutdown Without Calling Initialize",
         .disabled("This test is disabled because it should be skipped while running all tests. Enable if you want.")
     )
-    func testSwiftGitXShutdownWithoutInitialize() async throws {
-        // Shutdown the SwiftGitX library
-        let result = #expect(throws: SwiftGitXError.self) {
+    func shutdownWithoutInitialize() async throws {
+        // Shutdown the SwiftGitXRuntime
+        let error = #expect(throws: SwiftGitXError.self) {
             try SwiftGitXRuntime.shutdown()
         }
 
-        let error = try #require(result)
-
         // Check if the error is a SwiftGitXError
-        #expect(error.code == .error)
+        #expect(error?.code == .error)
 
         // Note: This is a quirk of libgit2's design. When shutdown() is called before initialize(),
         // it decrements the initialization count below 0 and returns a negative status code (error),
@@ -148,12 +146,12 @@ struct SwiftGitXTests {
         //
         // We still throw an error because shutdown should not be called without initialize, even though
         // the error message is uninformative. This error can be ignored if needed.
-        #expect(error.category == .none)
-        #expect(error.message == "no error")
+        #expect(error?.category == .none)
+        #expect(error?.message == "no error")
     }
 
-    @Test("Test SwiftGitX Version")
-    func testVersion() throws {
+    @Test("Test libgit2 version")
+    func libgit2Version() throws {
         // Get the libgit2 version
         let version = SwiftGitXRuntime.libgit2Version
 
@@ -163,5 +161,5 @@ struct SwiftGitXTests {
 }
 
 extension Testing.Tag {
-    @Tag static var swiftGitX: Self
+    @Tag static var runtime: Self
 }
