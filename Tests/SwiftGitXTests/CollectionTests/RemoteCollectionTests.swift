@@ -107,6 +107,16 @@ final class RemoteCollectionTests: SwiftGitXTest {
         #expect(Set(remotes) == Set(remoteLookups))
     }
 
+    @Test("List remotes on empty repository returns empty array")
+    func remoteListEmpty() async throws {
+        let repository = mockRepository()
+
+        // List remotes (should be empty)
+        let remotes = try repository.remote.list()
+
+        #expect(remotes.isEmpty)
+    }
+
     @Test("Iterate over all remotes")
     func remoteIterator() async throws {
         let repository = mockRepository()
@@ -121,6 +131,16 @@ final class RemoteCollectionTests: SwiftGitXTest {
         let remoteLookups = Array(repository.remote)
 
         #expect(Set(remotes) == Set(remoteLookups))
+    }
+
+    @Test("Iterate over empty repository returns no remotes")
+    func remoteIteratorEmpty() async throws {
+        let repository = mockRepository()
+
+        // Iterate over remotes (should be empty)
+        let remotes = Array(repository.remote)
+
+        #expect(remotes.isEmpty)
     }
 
     @Test("Lookup non-existent remote throws error")
@@ -179,4 +199,32 @@ final class RemoteCollectionTests: SwiftGitXTest {
         #expect(error?.category == .config)
         #expect(error?.message == "remote \'origin\' does not exist")
     }
+
+    @Test("Lookup remote using subscript")
+    func remoteSubscriptLookup() async throws {
+        let repository = mockRepository()
+
+        // Add a remote to the repository
+        let url = URL(string: "https://github.com/username/repo.git")!
+        let remote = try repository.remote.add(named: "origin", at: url)
+
+        // Get the remote using subscript
+        let remoteLookup = repository.remote["origin"]
+
+        // Check if the remote is the same
+        #expect(remoteLookup == remote)
+        #expect(remoteLookup?.name == "origin")
+        #expect(remoteLookup?.url == url)
+    }
+
+    @Test("Lookup non-existent remote using subscript returns nil")
+    func remoteSubscriptNotFound() async throws {
+        let repository = mockRepository()
+
+        // Get the remote using subscript (should return nil)
+        let remote = repository.remote["nonexistent"]
+
+        #expect(remote == nil)
+    }
+
 }
