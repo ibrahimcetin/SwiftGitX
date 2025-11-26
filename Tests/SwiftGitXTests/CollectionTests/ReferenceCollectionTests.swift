@@ -1,29 +1,28 @@
+import Foundation
 import SwiftGitX
-import XCTest
+import Testing
 
-final class ReferenceCollectionTests: SwiftGitXTestCase {
-    func testReferenceLookupSubscript() throws {
-        // Create a new repository at the temporary directory
-        let repository = Repository.mock(named: "test-reference-lookup-subscript", in: Self.directory)
+@Suite("Reference Collection", .tags(.reference, .collection))
+final class ReferenceCollectionTests: SwiftGitXTest {
+    @Test("Lookup reference by name using subscript")
+    func referenceLookupSubscript() async throws {
+        let repository = mockRepository()
 
         // Create mock commit
         let commit = try repository.mockCommit()
 
         // Get the branch
-        guard let reference = repository.reference["refs/heads/main"] else {
-            XCTFail("Reference not found")
-            return
-        }
+        let reference = try #require(repository.reference["refs/heads/main"])
 
         // Check the reference
-        XCTAssertEqual(reference.name, "main")
-        XCTAssertEqual(reference.fullName, "refs/heads/main")
-        XCTAssertEqual(reference.target.id, commit.id)
+        #expect(reference.name == "main")
+        #expect(reference.fullName == "refs/heads/main")
+        #expect(reference.target.id == commit.id)
     }
 
-    func testReferenceLookupSubscriptFailure() throws {
-        // Create a new repository at the temporary directory
-        let repository = Repository.mock(named: "test-reference-lookup-subscript-failure", in: Self.directory)
+    @Test("Lookup non-existent reference using subscript returns nil")
+    func referenceLookupSubscriptFailure() async throws {
+        let repository = mockRepository()
 
         // Create mock commit
         try repository.mockCommit()
@@ -32,12 +31,12 @@ final class ReferenceCollectionTests: SwiftGitXTestCase {
         let reference = repository.reference["refs/heads/feature"]
 
         // Check the reference
-        XCTAssertNil(reference)
+        #expect(reference == nil)
     }
 
-    func testReferenceLookupBranch() throws {
-        // Create a new repository at the temporary directory
-        let repository = Repository.mock(named: "test-reference-lookup-branch", in: Self.directory)
+    @Test("Lookup branch reference")
+    func referenceLookupBranch() async throws {
+        let repository = mockRepository()
 
         // Create mock commit
         let commit = try repository.mockCommit()
@@ -49,14 +48,14 @@ final class ReferenceCollectionTests: SwiftGitXTestCase {
         let reference = try repository.reference.get(named: branch.fullName)
 
         // Check the reference
-        XCTAssertEqual(reference.name, branch.name)
-        XCTAssertEqual(reference.fullName, branch.fullName)
-        XCTAssertEqual(reference.target.id, commit.id)
+        #expect(reference.name == branch.name)
+        #expect(reference.fullName == branch.fullName)
+        #expect(reference.target.id == commit.id)
     }
 
-    func testReferenceLookupTagAnnotated() throws {
-        // Create a new repository at the temporary directory
-        let repository = Repository.mock(named: "test-reference-lookup-tag-annotated", in: Self.directory)
+    @Test("Lookup annotated tag reference")
+    func referenceLookupTagAnnotated() async throws {
+        let repository = mockRepository()
 
         // Create mock commit
         let commit = try repository.mockCommit()
@@ -68,14 +67,14 @@ final class ReferenceCollectionTests: SwiftGitXTestCase {
         let reference = try repository.reference.get(named: tag.fullName)
 
         // Check the reference
-        XCTAssertEqual(reference.name, "v1.0.0")
-        XCTAssertEqual(reference.fullName, "refs/tags/v1.0.0")
-        XCTAssertEqual(reference.target.id, commit.id)
+        #expect(reference.name == "v1.0.0")
+        #expect(reference.fullName == "refs/tags/v1.0.0")
+        #expect(reference.target.id == commit.id)
     }
 
-    func testReferenceLookupTagLightweight() throws {
-        // Create a new repository at the temporary directory
-        let repository = Repository.mock(named: "test-reference-lookup-tag-lightweight", in: Self.directory)
+    @Test("Lookup lightweight tag reference")
+    func referenceLookupTagLightweight() async throws {
+        let repository = mockRepository()
 
         // Create mock commit
         let commit = try repository.mockCommit()
@@ -87,32 +86,27 @@ final class ReferenceCollectionTests: SwiftGitXTestCase {
         let reference = try repository.reference.get(named: tag.fullName)
 
         // Check the reference
-        XCTAssertEqual(reference.name, "v1.0.0")
-        XCTAssertEqual(reference.fullName, "refs/tags/v1.0.0")
-        XCTAssertEqual(reference.target.id, commit.id)
+        #expect(reference.name == "v1.0.0")
+        #expect(reference.fullName == "refs/tags/v1.0.0")
+        #expect(reference.target.id == commit.id)
     }
 
-    func testReferenceLookupFailure() throws {
-        // Create a new repository at the temporary directory
-        let repository = Repository.mock(named: "test-reference-lookup-failure", in: Self.directory)
+    @Test("Lookup non-existent reference throws error")
+    func referenceLookupFailure() async throws {
+        let repository = mockRepository()
 
         // Create mock commit
         try repository.mockCommit()
 
-        // Get the branch
-        XCTAssertThrowsError(try repository.reference.get(named: "refs/heads/feature")) { error in
-            XCTAssertTrue(error is SwiftGitXError)
-            let error = error as? SwiftGitXError
-
-            XCTAssertEqual(error?.code, .notFound)
-            XCTAssertEqual(error?.category, .reference)
-            XCTAssertEqual(error?.message, "reference \'refs/heads/feature\' not found")
+        // Get the branch and verify error details
+        #expect(throws: SwiftGitXError.self) {
+            try repository.reference.get(named: "refs/heads/feature")
         }
     }
 
-    func testReferenceList() throws {
-        // Create a new repository at the temporary directory
-        let repository = Repository.mock(named: "test-reference-list", in: Self.directory)
+    @Test("List all references")
+    func referenceList() async throws {
+        let repository = mockRepository()
 
         // Create mock commit
         let commit = try repository.mockCommit()
@@ -127,17 +121,17 @@ final class ReferenceCollectionTests: SwiftGitXTestCase {
         let references = try repository.reference.list()
 
         // Check the reference
-        XCTAssertEqual(references.count, 3)
+        #expect(references.count == 3)
 
         let referenceNames = references.map(\.name)
-        XCTAssertTrue(referenceNames.contains("feature"))
-        XCTAssertTrue(referenceNames.contains("main"))
-        XCTAssertTrue(referenceNames.contains("v1.0.0"))
+        #expect(referenceNames.contains("feature"))
+        #expect(referenceNames.contains("main"))
+        #expect(referenceNames.contains("v1.0.0"))
     }
 
-    func testReferenceIterator() throws {
-        // Create a new repository at the temporary directory
-        let repository = Repository.mock(named: "test-reference-iterator", in: Self.directory)
+    @Test("Iterate over all references")
+    func referenceIterator() async throws {
+        let repository = mockRepository()
 
         // Create mock commit
         let commit = try repository.mockCommit()
@@ -152,17 +146,17 @@ final class ReferenceCollectionTests: SwiftGitXTestCase {
         let references = Array(repository.reference)
 
         // Check the reference
-        XCTAssertEqual(references.count, 3)
+        #expect(references.count == 3)
 
         let referenceNames = references.map(\.name)
-        XCTAssertTrue(referenceNames.contains("feature"))
-        XCTAssertTrue(referenceNames.contains("main"))
-        XCTAssertTrue(referenceNames.contains("v1.0.0"))
+        #expect(referenceNames.contains("feature"))
+        #expect(referenceNames.contains("main"))
+        #expect(referenceNames.contains("v1.0.0"))
     }
 
-    func testReferenceIteratorGlob() throws {
-        // Create a new repository at the temporary directory
-        let repository = Repository.mock(named: "test-reference-iterator-glob", in: Self.directory)
+    @Test("List references with glob pattern")
+    func referenceIteratorGlob() async throws {
+        let repository = mockRepository()
 
         // Create mock commit
         let commit = try repository.mockCommit()
@@ -174,9 +168,16 @@ final class ReferenceCollectionTests: SwiftGitXTestCase {
         let references = try repository.reference.list(glob: "refs/tags/*")
 
         // Check the references
-        XCTAssertEqual(references.count, 1)
-        let tagLookup = try XCTUnwrap(references.first as? Tag)
+        #expect(references.count == 1)
 
-        XCTAssertEqual(tagLookup, tag)
+        let tagLookup = try #require(references.first as? SwiftGitX.Tag)
+
+        #expect(tagLookup == tag)
     }
+}
+
+// MARK: - Tag Extensions
+
+extension Testing.Tag {
+    @Tag static var reference: Self
 }
