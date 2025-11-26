@@ -73,6 +73,30 @@ final class BranchCollectionTests: SwiftGitXTest {
         #expect(newBranch.type == .local)
     }
 
+    @Test("Create branch with force flag overwrites existing")
+    func branchCreateForce() async throws {
+        let repository = mockRepository()
+        let commit1 = try repository.mockCommit()
+
+        // Create initial branch
+        let branch1 = try repository.branch.create(named: "develop", target: commit1)
+        #expect(branch1.target.id == commit1.id)
+
+        // Create another commit
+        let commit2 = try repository.mockCommit(message: "Second commit")
+
+        // Try to create branch without force (should fail)
+        #expect(throws: SwiftGitXError.self) {
+            try repository.branch.create(named: "develop", target: commit2, force: false)
+        }
+
+        // Create branch with force (should succeed and point to new commit)
+        let branch2 = try repository.branch.create(named: "develop", target: commit2, force: true)
+        #expect(branch2.name == "develop")
+        #expect(branch2.target.id == commit2.id)
+        #expect(branch2.target.id != commit1.id)
+    }
+
     @Test("Delete branch")
     func branchDelete() async throws {
         let repository = mockRepository()
@@ -121,6 +145,32 @@ final class BranchCollectionTests: SwiftGitXTest {
             try repository.branch.get(named: "develop")
         }
         #expect(repository.branch["develop"] == nil)
+    }
+
+    @Test("Rename branch with force flag overwrites existing")
+    func branchRenameForce() async throws {
+        let repository = mockRepository()
+        let commit = try repository.mockCommit()
+
+        // Create two branches
+        let branch1 = try repository.branch.create(named: "develop", target: commit)
+        _ = try repository.branch.create(named: "feature", target: commit)
+
+        // Try to rename without force (should fail)
+        #expect(throws: SwiftGitXError.self) {
+            try repository.branch.rename(branch1, to: "feature", force: false)
+        }
+
+        // Rename with force (should succeed)
+        let renamedBranch = try repository.branch.rename(branch1, to: "feature", force: true)
+        #expect(renamedBranch.name == "feature")
+
+        // Check the old branch no longer exists
+        #expect(repository.branch["develop"] == nil)
+
+        // The original feature branch should be overwritten
+        let featureBranch = try repository.branch.get(named: "feature")
+        #expect(featureBranch.target.id == commit.id)
     }
 
     @Test("Iterate local branches")
@@ -184,6 +234,61 @@ final class BranchCollectionTests: SwiftGitXTest {
             #expect(localBranches.contains(branch))
         }
     }
+
+    @Test("List all branches")
+    func branchListAll() async throws {
+        let repository = mockRepository()
+
+        // Create a new commit
+        let commit = try repository.mockCommit()
+
+        // Create some new branches
+        let newBranchNames = ["develop", "feature"]
+        for name in newBranchNames {
+            try repository.branch.create(named: name, target: commit)
+        }
+
+        // Get all branches (default parameter)
+        let allBranches = try repository.branch.list()
+        let allBranchesExplicit = try repository.branch.list(.all)
+
+        // Both should be equal
+        #expect(allBranches.count == allBranchesExplicit.count)
+        #expect(allBranches.count == 3)  // main, develop, feature
+
+        // Check all branch types are local (since no remote yet)
+        for branch in allBranches {
+            #expect(branch.type == .local)
+        }
+    }
+
+    @Test("Iterate all branches")
+    func branchIterateAll() async throws {
+        let repository = mockRepository()
+
+        // Create a new commit
+        let commit = try repository.mockCommit()
+
+        // Create some new branches
+        let newBranchNames = ["develop", "feature", "hotfix"]
+        for name in newBranchNames {
+            try repository.branch.create(named: name, target: commit)
+        }
+
+        // Iterate using for-in (uses makeIterator)
+        var branches: [Branch] = []
+        for branch in repository.branch {
+            branches.append(branch)
+        }
+
+        // Check the count (including main)
+        #expect(branches.count == 4)
+
+        // Verify all branches are present
+        let branchNames = branches.map(\.name).sorted()
+        let expectedNames = ["develop", "feature", "hotfix", "main"]
+        #expect(branchNames == expectedNames)
+    }
 }
 
 // MARK: - Remote Branch Operations
@@ -239,6 +344,154 @@ final class BranchRemoteTests: SwiftGitXTest {
         // Check if the upstream branch is unset
         #expect(try repository.branch.current.upstream == nil)
     }
+
+    @Test("Set upstream with explicit local branch")
+    func branchSetUpstreamExplicit() async throws {
+        let source = URL(string: "https://github.com/ibrahimcetin/SwiftGitX.git")!
+        let directory = mockDirectory()
+        let repository = try await Repository.clone(from: source, to: directory)
+
+        // Create a new local branch from the current HEAD
+        guard let commit = try repository.HEAD.target as? Commit else {
+            Issue.record("HEAD does not point to a commit")
+            return
+        }
+        let newBranch = try repository.branch.create(named: "feature", target: commit)
+
+        // Set upstream for the new branch explicitly
+        let upstreamBranch = try repository.branch.get(named: "origin/main")
+        try repository.branch.setUpstream(from: newBranch, to: upstreamBranch)
+
+        // Check if the upstream branch is set correctly
+        let featureBranch = try repository.branch.get(named: "feature")
+        let upstream = try #require(featureBranch.upstream as? Branch)
+        #expect(upstream.name == "origin/main")
+    }
+
+    @Test("Iterate remote branches")
+    func branchSequenceRemote() async throws {
+        let source = URL(string: "https://github.com/ibrahimcetin/SwiftGitX.git")!
+        let directory = mockDirectory()
+        let repository = try await Repository.clone(from: source, to: directory)
+
+        // Get the remote branches
+        let remoteBranches = Array(repository.branch.remote)
+
+        // Should have at least one remote branch (origin/main)
+        #expect(!remoteBranches.isEmpty)
+
+        // All branches should be remote type
+        for branch in remoteBranches {
+            #expect(branch.type == .remote)
+            #expect(branch.name.hasPrefix("origin/"))
+        }
+    }
+
+    @Test("List remote branches")
+    func branchListRemote() async throws {
+        let source = URL(string: "https://github.com/ibrahimcetin/SwiftGitX.git")!
+        let directory = mockDirectory()
+        let repository = try await Repository.clone(from: source, to: directory)
+
+        // Get the remote branches
+        let remoteBranches = Array(repository.branch.remote)
+
+        // Should have at least one remote branch (origin/main)
+        #expect(!remoteBranches.isEmpty)
+
+        // All branches should be remote type
+        for branch in remoteBranches {
+            #expect(branch.type == .remote)
+            #expect(branch.name.hasPrefix("origin/"))
+        }
+
+        // Verify we can lookup the remote branch
+        let originMain = try repository.branch.get(named: "origin/main", type: .remote)
+        #expect(remoteBranches.contains(originMain))
+    }
+}
+
+// MARK: - Error Cases
+
+@Suite("Branch Collection Error Cases", .tags(.branch, .collection, .error))
+final class BranchCollectionErrorTests: SwiftGitXTest {
+    @Test("Get non-existent branch throws error")
+    func branchGetNonExistent() async throws {
+        let repository = mockRepository()
+        try repository.mockCommit()
+
+        #expect(throws: SwiftGitXError.self) {
+            try repository.branch.get(named: "non-existent-branch")
+        }
+
+        // Subscript should return nil
+        #expect(repository.branch["non-existent-branch"] == nil)
+    }
+
+    @Test("Get current branch in detached HEAD state throws error")
+    func branchCurrentDetachedHead() async throws {
+        let repository = mockRepository()
+        let commit = try repository.mockCommit()
+
+        // Switch to a commit directly (creates detached HEAD)
+        try repository.switch(to: commit)
+
+        // Getting current branch should throw
+        #expect(throws: SwiftGitXError.self) {
+            _ = try repository.branch.current
+        }
+    }
+
+    @Test("Create branch from remote branch fails")
+    func branchCreateFromRemote() async throws {
+        let source = URL(string: "https://github.com/ibrahimcetin/SwiftGitX.git")!
+        let directory = mockDirectory()
+        let repository = try await Repository.clone(from: source, to: directory)
+
+        // Get a remote branch
+        let remoteBranch = try repository.branch.get(named: "origin/main", type: .remote)
+
+        // Try to create a branch from remote (should fail)
+        #expect(throws: SwiftGitXError.self) {
+            try repository.branch.create(named: "new-branch", from: remoteBranch)
+        }
+    }
+
+    @Test("Delete non-existent branch fails")
+    func branchDeleteNonExistent() async throws {
+        let repository = mockRepository()
+        try repository.mockCommit()
+
+        // Create a branch and then lookup it to get a Branch object
+        let commit = try repository.mockCommit()
+        let branch = try repository.branch.create(named: "temp", target: commit)
+
+        // Delete the branch
+        try repository.branch.delete(branch)
+
+        // Try to delete again (should fail)
+        #expect(throws: SwiftGitXError.self) {
+            try repository.branch.delete(branch)
+        }
+    }
+
+    @Test("Rename non-existent branch fails")
+    func branchRenameNonExistent() async throws {
+        let repository = mockRepository()
+        try repository.mockCommit()
+
+        // Create a branch
+        let commit = try repository.mockCommit()
+        let branch = try repository.branch.create(named: "temp", target: commit)
+
+        // Delete the branch
+        try repository.branch.delete(branch)
+
+        // Try to rename the deleted branch (should fail)
+        #expect(throws: SwiftGitXError.self) {
+            try repository.branch.rename(branch, to: "new-name")
+        }
+    }
 }
 
 // MARK: - Tag Extensions
@@ -247,4 +500,5 @@ extension Testing.Tag {
     @Tag static var branch: Self
     @Tag static var collection: Self
     @Tag static var remote: Self
+    @Tag static var error: Self
 }
