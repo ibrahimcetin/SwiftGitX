@@ -79,11 +79,21 @@ extension Repository {
     /// Creates a mock commit in the repository.
     @discardableResult
     func mockCommit(message: String? = nil, file: URL? = nil) throws -> Commit {
+        // Count existing commits to determine the sequence number
+        let commitCount = (try? log().reduce(0) { count, _ in count + 1 }) ?? 0
+        let sequenceNumber = commitCount + 1
+
+        // Generate a unique file if none is provided to ensure we always have changes to commit
+        let fileToAdd = try file ?? mockFile(named: "file-\(sequenceNumber).txt")
+
         // Add the file to the index
-        try add(file: file ?? mockFile(named: "README.md"))
+        try add(file: fileToAdd)
+
+        // Determine the commit message based on sequence
+        let commitMessage = message ?? "Commit #\(sequenceNumber)"
 
         // Commit the changes
-        return try commit(message: message ?? "Initial commit")
+        return try commit(message: commitMessage)
     }
 }
 
