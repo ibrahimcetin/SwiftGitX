@@ -174,6 +174,59 @@ final class ReferenceCollectionTests: SwiftGitXTest {
 
         #expect(tagLookup == tag)
     }
+
+    @Test("List only branches with glob pattern")
+    func referenceListBranchesOnly() async throws {
+        let repository = mockRepository()
+
+        // Create mock commit
+        let commit = try repository.mockCommit()
+
+        // Create branches and tags
+        try repository.branch.create(named: "feature", target: commit)
+        try repository.branch.create(named: "develop", target: commit)
+        try repository.tag.create(named: "v1.0.0", target: commit)
+
+        // Get only branches using glob
+        let branches = try repository.reference.list(glob: "refs/heads/*")
+
+        // Should only return branches (main, feature, develop), not the tag
+        #expect(branches.count == 3)
+
+        let branchNames = branches.map(\.name).sorted()
+        #expect(branchNames == ["develop", "feature", "main"])
+    }
+
+    @Test("List with glob pattern that matches nothing returns empty array")
+    func referenceListGlobNoMatches() async throws {
+        let repository = mockRepository()
+
+        // Create mock commit
+        try repository.mockCommit()
+
+        // Get references with a glob that matches nothing
+        let references = try repository.reference.list(glob: "refs/nonexistent/*")
+
+        // Should return empty array
+        #expect(references.isEmpty)
+    }
+
+    @Test("Lookup reference with invalid name throws error")
+    func referenceGetInvalidName() async throws {
+        let repository = mockRepository()
+
+        // Create mock commit
+        try repository.mockCommit()
+
+        // Try to get reference with invalid names
+        #expect(throws: SwiftGitXError.self) {
+            try repository.reference.get(named: "")
+        }
+
+        #expect(throws: SwiftGitXError.self) {
+            try repository.reference.get(named: "main")  // Missing refs/heads/ prefix
+        }
+    }
 }
 
 // MARK: - Tag Extensions
