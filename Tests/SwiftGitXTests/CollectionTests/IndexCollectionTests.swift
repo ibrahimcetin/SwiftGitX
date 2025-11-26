@@ -1,47 +1,49 @@
-import XCTest
+import Foundation
+import Testing
 
 @testable import SwiftGitX
 
-final class IndexCollectionTests: SwiftGitXTestCase {
-    func testIndexAddPath() throws {
-        // Create a repository
-        let repository = Repository.mock(named: "test-index-add-path", in: Self.directory)
+@Suite("Index Collection", .tags(.index, .collection))
+final class IndexCollectionTests: SwiftGitXTest {
+    @Test("Add file to index using path")
+    func indexAddPath() async throws {
+        let repository = mockRepository()
 
         // Create a file in the repository
         _ = try repository.mockFile(named: "README.md", content: "Hello, World!")
 
         // Stage the file using the file path
-        XCTAssertNoThrow(try repository.add(path: "README.md"))
+        try repository.add(path: "README.md")
 
         // Verify that the file is staged
-        let statusEntry = try XCTUnwrap(repository.status().first)
+        let statusEntry = try #require(repository.status().first)
 
-        XCTAssertEqual(statusEntry.status, [.indexNew])  // The file is staged
-        XCTAssertEqual(statusEntry.index?.newFile.path, "README.md")
-        XCTAssertNil(statusEntry.workingTree)  // The file is staged and not in the working tree anymore
+        #expect(statusEntry.status == [.indexNew])  // The file is staged
+        #expect(statusEntry.index?.newFile.path == "README.md")
+        #expect(statusEntry.workingTree == nil)  // The file is staged and not in the working tree anymore
     }
 
-    func testIndexAddFile() throws {
-        // Create a repository
-        let repository = Repository.mock(named: "test-index-add-file", in: Self.directory)
+    @Test("Add file to index using file URL")
+    func indexAddFile() async throws {
+        let repository = mockRepository()
 
         // Create a file in the repository
         let file = try repository.mockFile(named: "README.md", content: "Hello, World!")
 
         // Stage the file using the file URL
-        XCTAssertNoThrow(try repository.add(file: file))
+        try repository.add(file: file)
 
         // Verify that the file is staged
-        let statusEntry = try XCTUnwrap(repository.status().first)
+        let statusEntry = try #require(repository.status().first)
 
-        XCTAssertEqual(statusEntry.status, [.indexNew])  // The file is staged
-        XCTAssertEqual(statusEntry.index?.newFile.path, "README.md")
-        XCTAssertNil(statusEntry.workingTree)  // The file is staged and not in the working tree anymore
+        #expect(statusEntry.status == [.indexNew])  // The file is staged
+        #expect(statusEntry.index?.newFile.path == "README.md")
+        #expect(statusEntry.workingTree == nil)  // The file is staged and not in the working tree anymore
     }
 
-    func testIndexAddPaths() throws {
-        // Create a repository
-        let repository = Repository.mock(named: "test-index-add-paths", in: Self.directory)
+    @Test("Add multiple files to index using paths")
+    func indexAddPaths() async throws {
+        let repository = mockRepository()
 
         // Create new files in the repository
         let files = try (0..<10).map { index in
@@ -49,20 +51,20 @@ final class IndexCollectionTests: SwiftGitXTestCase {
         }
 
         // Stage the files using the file paths
-        XCTAssertNoThrow(try repository.add(paths: files.map(\.lastPathComponent)))
+        try repository.add(paths: files.map(\.lastPathComponent))
 
         // Verify that the files are staged
         let statusEntries = try repository.status()
 
-        XCTAssertEqual(statusEntries.count, files.count)
-        XCTAssertEqual(statusEntries.map(\.status), Array(repeating: [.indexNew], count: files.count))
-        XCTAssertEqual(statusEntries.map(\.index?.newFile.path), files.map(\.lastPathComponent))
-        XCTAssertEqual(statusEntries.map(\.workingTree), Array(repeating: nil, count: files.count))
+        #expect(statusEntries.count == files.count)
+        #expect(statusEntries.map(\.status) == Array(repeating: [.indexNew], count: files.count))
+        #expect(statusEntries.map(\.index?.newFile.path) == files.map(\.lastPathComponent))
+        #expect(statusEntries.map(\.workingTree) == Array(repeating: nil, count: files.count))
     }
 
-    func testIndexAddFiles() throws {
-        // Create a repository
-        let repository = Repository.mock(named: "test-index-add-files", in: Self.directory)
+    @Test("Add multiple files to index using file URLs")
+    func indexAddFiles() async throws {
+        let repository = mockRepository()
 
         // Create new files in the repository
         let files = try (0..<10).map { index in
@@ -70,62 +72,60 @@ final class IndexCollectionTests: SwiftGitXTestCase {
         }
 
         // Stage the files using the file URLs
-        XCTAssertNoThrow(try repository.add(files: files))
+        try repository.add(files: files)
 
         // Verify that the files are staged
         let statusEntries = try repository.status()
 
-        XCTAssertEqual(statusEntries.count, files.count)
-        XCTAssertEqual(statusEntries.map(\.status), Array(repeating: [.indexNew], count: files.count))
-        XCTAssertEqual(statusEntries.map(\.index?.newFile.path), files.map(\.lastPathComponent))
-        XCTAssertEqual(statusEntries.map(\.workingTree), Array(repeating: nil, count: files.count))
+        #expect(statusEntries.count == files.count)
+        #expect(statusEntries.map(\.status) == Array(repeating: [.indexNew], count: files.count))
+        #expect(statusEntries.map(\.index?.newFile.path) == files.map(\.lastPathComponent))
+        #expect(statusEntries.map(\.workingTree) == Array(repeating: nil, count: files.count))
     }
 
-    // TODO: Add test for add all
-
-    func testIndexRemovePath() throws {
-        // Create a repository
-        let repository = Repository.mock(named: "test-index-remove-path", in: Self.directory)
+    @Test("Remove file from index using path")
+    func indexRemovePath() async throws {
+        let repository = mockRepository()
 
         // Create a file in the repository
         let file = try repository.mockFile(named: "README.md", content: "Hello, World!")
 
         // Stage the file
-        XCTAssertNoThrow(try repository.add(file: file))
+        try repository.add(file: file)
 
         // Unstage the file using the file path
-        XCTAssertNoThrow(try repository.remove(path: "README.md"))
+        try repository.remove(path: "README.md")
 
         // Verify that the file is not staged
-        let statusEntry = try XCTUnwrap(repository.status().first)
+        let statusEntry = try #require(repository.status().first)
 
-        XCTAssertEqual(statusEntry.status, [.workingTreeNew])
-        XCTAssertNil(statusEntry.index)  // The file is not staged
+        #expect(statusEntry.status == [.workingTreeNew])
+        #expect(statusEntry.index == nil)  // The file is not staged
     }
 
-    func testIndexRemoveFile() throws {
-        // Create a repository
-        let repository = Repository.mock(named: "test-index-remove-file", in: Self.directory)
+    @Test("Remove file from index using file URL")
+    func indexRemoveFile() async throws {
+        let repository = mockRepository()
 
         // Create a file in the repository
         let file = try repository.mockFile(named: "README.md", content: "Hello, World!")
 
         // Stage the file
-        XCTAssertNoThrow(try repository.add(file: file))
+        try repository.add(file: file)
 
         // Unstage the file using the file URL
-        XCTAssertNoThrow(try repository.remove(file: file))
+        try repository.remove(file: file)
 
         // Verify that the file is not staged
-        let statusEntry = try XCTUnwrap(repository.status().first)
+        let statusEntry = try #require(repository.status().first)
 
-        XCTAssertEqual(statusEntry.status, [.workingTreeNew])
-        XCTAssertNil(statusEntry.index)  // The file is not staged
+        #expect(statusEntry.status == [.workingTreeNew])
+        #expect(statusEntry.index == nil)  // The file is not staged
     }
 
-    func testIndexRemovePaths() throws {
-        // Create a repository
-        let repository = Repository.mock(named: "test-index-remove-paths", in: Self.directory)
+    @Test("Remove multiple files from index using paths")
+    func indexRemovePaths() async throws {
+        let repository = mockRepository()
 
         // Create new files in the repository
         let files = try (0..<10).map { index in
@@ -133,22 +133,22 @@ final class IndexCollectionTests: SwiftGitXTestCase {
         }
 
         // Stage the files
-        XCTAssertNoThrow(try repository.add(files: files))
+        try repository.add(files: files)
 
         // Unstage the files using the file paths
-        XCTAssertNoThrow(try repository.remove(paths: files.map(\.lastPathComponent)))
+        try repository.remove(paths: files.map(\.lastPathComponent))
 
         // Verify that the files are not staged
         let statusEntries = try repository.status()
 
-        XCTAssertEqual(statusEntries.count, files.count)
-        XCTAssertEqual(statusEntries.map(\.status), Array(repeating: [.workingTreeNew], count: files.count))
-        XCTAssertEqual(statusEntries.map(\.index), Array(repeating: nil, count: files.count))
+        #expect(statusEntries.count == files.count)
+        #expect(statusEntries.map(\.status) == Array(repeating: [.workingTreeNew], count: files.count))
+        #expect(statusEntries.map(\.index) == Array(repeating: nil, count: files.count))
     }
 
-    func testIndexRemoveFiles() throws {
-        // Create a repository
-        let repository = Repository.mock(named: "test-index-remove-files", in: Self.directory)
+    @Test("Remove multiple files from index using file URLs")
+    func indexRemoveFiles() async throws {
+        let repository = mockRepository()
 
         // Create new files in the repository
         let files = try (0..<10).map { index in
@@ -156,22 +156,22 @@ final class IndexCollectionTests: SwiftGitXTestCase {
         }
 
         // Stage the files
-        XCTAssertNoThrow(try repository.add(files: files))
+        try repository.add(files: files)
 
         // Unstage the files using the file URLs
-        XCTAssertNoThrow(try repository.remove(files: files))
+        try repository.remove(files: files)
 
         // Verify that the files are not staged
         let statusEntries = try repository.status()
 
-        XCTAssertEqual(statusEntries.count, files.count)
-        XCTAssertEqual(statusEntries.map(\.status), Array(repeating: [.workingTreeNew], count: files.count))
-        XCTAssertEqual(statusEntries.map(\.index), Array(repeating: nil, count: files.count))
+        #expect(statusEntries.count == files.count)
+        #expect(statusEntries.map(\.status) == Array(repeating: [.workingTreeNew], count: files.count))
+        #expect(statusEntries.map(\.index) == Array(repeating: nil, count: files.count))
     }
 
-    func testIndexRemoveAll() throws {
-        // Create a repository
-        let repository = Repository.mock(named: "test-index-remove-all", in: Self.directory)
+    @Test("Remove all files from index")
+    func indexRemoveAll() async throws {
+        let repository = mockRepository()
 
         // Create new files in the repository
         let files = try (0..<10).map { index in
@@ -179,9 +179,19 @@ final class IndexCollectionTests: SwiftGitXTestCase {
         }
 
         // Stage the files
-        XCTAssertNoThrow(try repository.add(files: files))
+        try repository.add(files: files)
 
         // Unstage all files
-        XCTAssertNoThrow(try repository.index.removeAll())
+        try repository.index.removeAll()
+
+        // Verify all files are unstaged
+        let statusEntries = try repository.status()
+        #expect(statusEntries.allSatisfy { $0.index == nil })
     }
+}
+
+// MARK: - Tag Extensions
+
+extension Testing.Tag {
+    @Tag static var index: Self
 }
