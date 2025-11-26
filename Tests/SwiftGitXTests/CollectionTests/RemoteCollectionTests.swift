@@ -1,10 +1,12 @@
+import Foundation
 import SwiftGitX
-import XCTest
+import Testing
 
-final class RemoteCollectionTests: SwiftGitXTestCase {
-    func testRemoteLookup() throws {
-        // Create a mock repository at the temporary directory
-        let repository = Repository.mock(named: "test-remote-lookup", in: Self.directory)
+@Suite("Remote Collection", .tags(.remote, .collection))
+final class RemoteCollectionTests: SwiftGitXTest {
+    @Test("Lookup remote by name")
+    func remoteLookup() async throws {
+        let repository = mockRepository()
 
         // Add a remote to the repository
         let url = URL(string: "https://github.com/username/repo.git")!
@@ -14,15 +16,14 @@ final class RemoteCollectionTests: SwiftGitXTestCase {
         let remoteLookup = try repository.remote.get(named: "origin")
 
         // Check if the remote is the same
-        XCTAssertEqual(remoteLookup, remote)
-
-        XCTAssertEqual(remote.name, "origin")
-        XCTAssertEqual(remote.url, url)
+        #expect(remoteLookup == remote)
+        #expect(remote.name == "origin")
+        #expect(remote.url == url)
     }
 
-    func testRemoteAdd() throws {
-        // Create a mock repository at the temporary directory
-        let repository = Repository.mock(named: "test-remote-add", in: Self.directory)
+    @Test("Add remote to repository")
+    func remoteAdd() async throws {
+        let repository = mockRepository()
 
         // Add a new remote to the repository
         let url = URL(string: "https://github.com/ibrahimcetin/SwiftGitX.git")!
@@ -32,46 +33,44 @@ final class RemoteCollectionTests: SwiftGitXTestCase {
         let remoteLookup = try repository.remote.get(named: "origin")
 
         // Check if the remote is the same
-        XCTAssertEqual(remoteLookup, remote)
-
-        XCTAssertEqual(remote.name, "origin")
-        XCTAssertEqual(remote.url, url)
+        #expect(remoteLookup == remote)
+        #expect(remote.name == "origin")
+        #expect(remote.url == url)
     }
 
-    func testRemoteBranches() async throws {
-        // Create a mock repository at the temporary directory
-        let remoteRepository = Repository.mock(named: "test-remote-branches--remote", in: Self.directory)
+    @Test("Get remote branches after clone")
+    func remoteBranches() async throws {
+        let remoteRepository = mockRepository()
 
         // Create a commit in the repository
         try remoteRepository.mockCommit()
 
         // Create branches in the repository
-        try ["feature/1", "feature/2", "feature/3", "feature/4", "feature/5", "feature/6", "feature/7"]
-            .forEach { name in
-                try remoteRepository.branch.create(named: name, from: remoteRepository.branch.current)
-            }
+        for name in ["feature/1", "feature/2", "feature/3", "feature/4", "feature/5", "feature/6", "feature/7"] {
+            try remoteRepository.branch.create(named: name, from: remoteRepository.branch.current)
+        }
         let branches = Array(remoteRepository.branch.local)
 
-        XCTAssertEqual(branches.count, 8)
+        #expect(branches.count == 8)
 
         // Clone remote repository to local repository
-        let localDirectory = Repository.mockDirectory(named: "test-remote-branches--local", in: Self.directory)
+        let localDirectory = mockDirectory(function: "remoteBranches-local")
         let localRepository = try await Repository.clone(from: remoteRepository.workingDirectory, to: localDirectory)
 
         // Get the remote from the repository excluding the main branch
         let remoteBranches = Array(localRepository.branch.remote)
 
         // Check if the branches are the same
-        XCTAssertEqual(remoteBranches.count, 8)
+        #expect(remoteBranches.count == 8)
 
         for (remoteBranch, branch) in zip(remoteBranches, branches) {
-            XCTAssertEqual(remoteBranch.name, "origin/" + branch.name)
+            #expect(remoteBranch.name == "origin/" + branch.name)
         }
     }
 
-    func testRemoteRemove() throws {
-        // Create a mock repository at the temporary directory
-        let repository = Repository.mock(named: "test-remote-remove", in: Self.directory)
+    @Test("Remove remote from repository")
+    func remoteRemove() async throws {
+        let repository = mockRepository()
 
         // Add a remote to the repository
         let remote = try repository.remote.add(
@@ -82,21 +81,19 @@ final class RemoteCollectionTests: SwiftGitXTestCase {
         // Remove the remote from the repository
         try repository.remote.remove(remote)
 
-        // Get the remote from the repository
-        XCTAssertThrowsError(try repository.remote.get(named: "origin")) { error in
-            XCTAssertTrue(error is SwiftGitXError)
-
-            let error = error as? SwiftGitXError
-
-            XCTAssertEqual(error?.code, .notFound)
-            XCTAssertEqual(error?.category, .config)
-            XCTAssertEqual(error?.message, "remote \'origin\' does not exist")
+        // Get the remote from the repository (should throw)
+        let error = #expect(throws: SwiftGitXError.self) {
+            try repository.remote.get(named: "origin")
         }
+
+        #expect(error?.code == .notFound)
+        #expect(error?.category == .config)
+        #expect(error?.message == "remote \'origin\' does not exist")
     }
 
-    func testRemoteList() throws {
-        // Create a mock repository at the temporary directory
-        let repository = Repository.mock(named: "test-remote-list", in: Self.directory)
+    @Test("List all remotes")
+    func remoteList() async throws {
+        let repository = mockRepository()
 
         // Add remotes to the repository
         let remoteNames = ["origin", "upstream", "features", "my-remote", "remote"]
@@ -107,12 +104,12 @@ final class RemoteCollectionTests: SwiftGitXTestCase {
         // List the remotes in the repository
         let remoteLookups = try repository.remote.list()
 
-        XCTAssertEqual(Set(remotes), Set(remoteLookups))
+        #expect(Set(remotes) == Set(remoteLookups))
     }
 
-    func testRemoteIterator() throws {
-        // Create a mock repository at the temporary directory
-        let repository = Repository.mock(named: "test-remote-iterator", in: Self.directory)
+    @Test("Iterate over all remotes")
+    func remoteIterator() async throws {
+        let repository = mockRepository()
 
         // Add remotes to the repository
         let remoteNames = ["origin", "upstream", "features", "my-remote", "remote"]
@@ -123,28 +120,26 @@ final class RemoteCollectionTests: SwiftGitXTestCase {
         // List the remotes in the repository
         let remoteLookups = Array(repository.remote)
 
-        XCTAssertEqual(Set(remotes), Set(remoteLookups))
+        #expect(Set(remotes) == Set(remoteLookups))
     }
 
-    func testRemoteLookupNotFound() throws {
-        // Create a new repository at the temporary directory
-        let repository = Repository.mock(named: "test-remote-not-found", in: Self.directory)
+    @Test("Lookup non-existent remote throws error")
+    func remoteLookupNotFound() async throws {
+        let repository = mockRepository()
 
-        // Get the remote
-        XCTAssertThrowsError(try repository.remote.get(named: "origin")) { error in
-            XCTAssertTrue(error is SwiftGitXError)
-
-            let error = error as? SwiftGitXError
-
-            XCTAssertEqual(error?.code, .notFound)
-            XCTAssertEqual(error?.category, .config)
-            XCTAssertEqual(error?.message, "remote \'origin\' does not exist")
+        // Get the remote (should throw)
+        let error = #expect(throws: SwiftGitXError.self) {
+            try repository.remote.get(named: "origin")
         }
+
+        #expect(error?.code == .notFound)
+        #expect(error?.category == .config)
+        #expect(error?.message == "remote \'origin\' does not exist")
     }
 
-    func testRemoteAddFailure() throws {
-        // Create a mock repository at the temporary directory
-        let repository = Repository.mock(named: "test-remote-remove", in: Self.directory)
+    @Test("Add duplicate remote throws error")
+    func remoteAddFailure() async throws {
+        let repository = mockRepository()
 
         // Add a remote to the repository
         let remote = try repository.remote.add(
@@ -152,21 +147,19 @@ final class RemoteCollectionTests: SwiftGitXTestCase {
             at: URL(string: "https://github.com/ibrahimcetin/SwiftGitX.git")!
         )
 
-        // Add the same remote again
-        XCTAssertThrowsError(try repository.remote.add(named: "origin", at: remote.url)) { error in
-            XCTAssertTrue(error is SwiftGitXError)
-
-            let error = error as? SwiftGitXError
-
-            XCTAssertEqual(error?.code, .exists)
-            XCTAssertEqual(error?.category, .config)
-            XCTAssertEqual(error?.message, "remote \'origin\' already exists")
+        // Add the same remote again (should throw)
+        let error = #expect(throws: SwiftGitXError.self) {
+            try repository.remote.add(named: "origin", at: remote.url)
         }
+
+        #expect(error?.code == .exists)
+        #expect(error?.category == .config)
+        #expect(error?.message == "remote \'origin\' already exists")
     }
 
-    func testRemoteRemoveFailure() throws {
-        // Create a mock repository at the temporary directory
-        let repository = Repository.mock(named: "test-remote-remove", in: Self.directory)
+    @Test("Remove non-existent remote throws error")
+    func remoteRemoveFailure() async throws {
+        let repository = mockRepository()
 
         // Add a remote to the repository
         let remote = try repository.remote.add(
@@ -177,15 +170,13 @@ final class RemoteCollectionTests: SwiftGitXTestCase {
         // Remove the remote from the repository
         try repository.remote.remove(remote)
 
-        // Remove the remote again
-        XCTAssertThrowsError(try repository.remote.remove(remote)) { error in
-            XCTAssertTrue(error is SwiftGitXError)
-
-            let error = error as? SwiftGitXError
-
-            XCTAssertEqual(error?.code, .notFound)
-            XCTAssertEqual(error?.category, .config)
-            XCTAssertEqual(error?.message, "remote \'origin\' does not exist")
+        // Remove the remote again (should throw)
+        let error = #expect(throws: SwiftGitXError.self) {
+            try repository.remote.remove(remote)
         }
+
+        #expect(error?.code == .notFound)
+        #expect(error?.category == .config)
+        #expect(error?.message == "remote \'origin\' does not exist")
     }
 }
