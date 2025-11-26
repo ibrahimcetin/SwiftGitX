@@ -1,163 +1,135 @@
+import Foundation
 import SwiftGitX
-import XCTest
+import Testing
 
-final class BranchCollectionTests: SwiftGitXTestCase {
-    func testBranchLookup() throws {
-        // Create a new repository at the temporary directory
-        let repository = Repository.mock(named: "test-branch-lookup", in: Self.directory)
-
-        // Create mock commit
+@Suite("Branch Collection", .tags(.branch, .collection))
+final class BranchCollectionTests: SwiftGitXTest {
+    @Test("Lookup branch by name")
+    func branchLookup() async throws {
+        let repository = mockRepository()
         let commit = try repository.mockCommit()
 
-        // Lookup the branch
         let lookupBranch = try repository.branch.get(named: "main", type: .local)
 
-        // Check the branch
-        XCTAssertEqual(lookupBranch.name, "main")
-        XCTAssertEqual(lookupBranch.fullName, "refs/heads/main")
-        XCTAssertEqual(lookupBranch.target.id, commit.id)
+        #expect(lookupBranch.name == "main")
+        #expect(lookupBranch.fullName == "refs/heads/main")
+        #expect(lookupBranch.target.id == commit.id)
     }
 
-    func testBranchLookupSubscript() throws {
-        // Create a new repository at the temporary directory
-        let repository = Repository.mock(named: "test-branch-lookup-subscript", in: Self.directory)
-
-        // Create mock commit
+    @Test("Lookup branch using subscript")
+    func branchLookupSubscript() async throws {
+        let repository = mockRepository()
         let commit = try repository.mockCommit()
 
-        // Lookup the branch
-        let lookupBranch = try XCTUnwrap(repository.branch["main"])
-        let lookupBranchLocal = try XCTUnwrap(repository.branch["main", type: .local])
+        let lookupBranch = try #require(repository.branch["main"])
+        let lookupBranchLocal = try #require(repository.branch["main", type: .local])
 
-        XCTAssertEqual(lookupBranch, lookupBranchLocal)
-
-        // Check the branch
-        XCTAssertEqual(lookupBranch.name, "main")
-        XCTAssertEqual(lookupBranch.fullName, "refs/heads/main")
-        XCTAssertEqual(lookupBranch.target.id, commit.id)
+        #expect(lookupBranch == lookupBranchLocal)
+        #expect(lookupBranch.name == "main")
+        #expect(lookupBranch.fullName == "refs/heads/main")
+        #expect(lookupBranch.target.id == commit.id)
 
         // Lookup remote branch (should be nil)
         let lookupBranchRemote = repository.branch["main", type: .remote]
-        XCTAssertNil(lookupBranchRemote)
+        #expect(lookupBranchRemote == nil)
     }
 
-    func testBranchCurrent() throws {
-        // Create a new repository at the temporary directory
-        let repository = Repository.mock(named: "test-branch-current", in: Self.directory)
-
-        // Create mock commit
+    @Test("Get current branch")
+    func branchCurrent() async throws {
+        let repository = mockRepository()
         try repository.mockCommit()
 
-        // Get the current branch
-        let currentBranch = try XCTUnwrap(repository.branch.current)
+        let currentBranch = try repository.branch.current
 
-        // Check the current branch
-        XCTAssertEqual(currentBranch.name, "main")
-        XCTAssertEqual(currentBranch.fullName, "refs/heads/main")
-        XCTAssertEqual(currentBranch.type, .local)
+        #expect(currentBranch.name == "main")
+        #expect(currentBranch.fullName == "refs/heads/main")
+        #expect(currentBranch.type == .local)
     }
 
-    func testBranchCreate() throws {
-        let repository = Repository.mock(named: "test-branch-create", in: Self.directory)
-
-        // Create mock commit
+    @Test("Create new branch")
+    func branchCreate() async throws {
+        let repository = mockRepository()
         let commit = try repository.mockCommit()
 
-        // Create a new branch
         let branch = try repository.branch.create(named: "develop", target: commit)
 
-        // Check the branch
-        XCTAssertEqual(branch.name, "develop")
-        XCTAssertEqual(branch.fullName, "refs/heads/develop")
-        XCTAssertEqual(branch.target.id, commit.id)
-        XCTAssertEqual(branch.type, .local)
+        #expect(branch.name == "develop")
+        #expect(branch.fullName == "refs/heads/develop")
+        #expect(branch.target.id == commit.id)
+        #expect(branch.type == .local)
     }
 
-    func testBranchCreateFrom() throws {
-        let repository = Repository.mock(named: "test-branch-create-from", in: Self.directory)
-
-        // Create mock commit
+    @Test("Create branch from another branch")
+    func branchCreateFrom() async throws {
+        let repository = mockRepository()
         try repository.mockCommit()
 
-        // Get the main branch
         let mainBranch = try repository.branch.get(named: "main")
-
-        // Create a new branch
         let newBranch = try repository.branch.create(named: "develop", from: mainBranch)
 
-        // Check the branch
-        XCTAssertEqual(newBranch.name, "develop")
-        XCTAssertEqual(newBranch.fullName, "refs/heads/develop")
-        XCTAssertEqual(newBranch.target.id, mainBranch.target.id)
-        XCTAssertEqual(newBranch.type, .local)
+        #expect(newBranch.name == "develop")
+        #expect(newBranch.fullName == "refs/heads/develop")
+        #expect(newBranch.target.id == mainBranch.target.id)
+        #expect(newBranch.type == .local)
     }
 
-    func testBranchDelete() throws {
-        let repository = Repository.mock(named: "test-branch-delete", in: Self.directory)
-
-        // Create mock commit
-        let commit: Commit = try repository.mockCommit()
-
-        // Create a new branch
-        let branch = try repository.branch.create(named: "develop", target: commit)
-
-        // Delete the branch
-        XCTAssertNoThrow(try repository.branch.delete(branch))
-
-        // Check the branch
-        XCTAssertThrowsError(try repository.branch.get(named: "develop"))
-        XCTAssertNil(repository.branch["develop"])
-
-        // Check the current branch
-        XCTAssertEqual(try repository.branch.current.name, "main")
-    }
-
-    func testBranchDeleteCurrentFailure() throws {
-        let repository = Repository.mock(named: "test-branch-delete-current-failure", in: Self.directory)
-
-        // Create mock commit
-        try repository.mockCommit()
-
-        // Get the main branch (current branch)
-        let mainBranch = try repository.branch.get(named: "main")
-
-        // Delete the branch
-        XCTAssertThrowsError(try repository.branch.delete(mainBranch))
-    }
-
-    func testBranchRename() throws {
-        let repository = Repository.mock(named: "test-branch-rename", in: Self.directory)
-
-        // Create mock commit
+    @Test("Delete branch")
+    func branchDelete() async throws {
+        let repository = mockRepository()
         let commit = try repository.mockCommit()
 
-        // Create a new branch
         let branch = try repository.branch.create(named: "develop", target: commit)
 
-        // Rename the branch
-        let newBranch = try repository.branch.rename(branch, to: "feature")
+        try repository.branch.delete(branch)
 
-        // Check the branch
-        XCTAssertEqual(newBranch.name, "feature")
-        XCTAssertEqual(newBranch.fullName, "refs/heads/feature")
-        XCTAssertEqual(newBranch.target.id, commit.id)
-        XCTAssertEqual(newBranch.type, .local)
+        #expect(throws: SwiftGitXError.self) {
+            try repository.branch.get(named: "develop")
+        }
+        #expect(repository.branch["develop"] == nil)
 
-        // Check the old branch
-        XCTAssertThrowsError(try repository.branch.get(named: "develop"))
-        XCTAssertNil(repository.branch["develop"])
+        // Check the current branch is still main
+        #expect(try repository.branch.current.name == "main")
     }
 
-    func testBranchSequenceLocal() throws {
-        // Create a new repository at the temporary directory
-        let repository = Repository.mock(named: "test-branch-sequence-local", in: Self.directory)
+    @Test("Delete current branch fails")
+    func branchDeleteCurrentFailure() async throws {
+        let repository = mockRepository()
+        try repository.mockCommit()
 
-        // Get the local branches
-        // (must be empty because the main branch is unborn)
+        let mainBranch = try repository.branch.get(named: "main")
+
+        #expect(throws: SwiftGitXError.self) {
+            try repository.branch.delete(mainBranch)
+        }
+    }
+
+    @Test("Rename branch")
+    func branchRename() async throws {
+        let repository = mockRepository()
+        let commit = try repository.mockCommit()
+
+        let branch = try repository.branch.create(named: "develop", target: commit)
+        let newBranch = try repository.branch.rename(branch, to: "feature")
+
+        #expect(newBranch.name == "feature")
+        #expect(newBranch.fullName == "refs/heads/feature")
+        #expect(newBranch.target.id == commit.id)
+        #expect(newBranch.type == .local)
+
+        // Check the old branch no longer exists
+        #expect(throws: SwiftGitXError.self) {
+            try repository.branch.get(named: "develop")
+        }
+        #expect(repository.branch["develop"] == nil)
+    }
+
+    @Test("Iterate local branches")
+    func branchSequenceLocal() async throws {
+        let repository = mockRepository()
+
+        // Get the local branches (must be empty because the main branch is unborn)
         let localBranchesEmpty = Array(repository.branch.local)
-
-        // Check empty branches
-        XCTAssertEqual(localBranchesEmpty, [])
+        #expect(localBranchesEmpty.isEmpty)
 
         // Create mock commit
         let commit = try repository.mockCommit()
@@ -172,33 +144,29 @@ final class BranchCollectionTests: SwiftGitXTestCase {
         let localBranches = Array(repository.branch.local)
 
         // Check the local branches count (including the main branch)
-        XCTAssertEqual(localBranches.count, 5)
+        #expect(localBranches.count == 5)
 
         // Check the local branches
         let allBranchNames = repository.branch.local.map(\.name)
         for name in allBranchNames {
             let branch = try repository.branch.get(named: name, type: .local)
-            XCTAssertTrue(localBranches.contains(branch))
+            #expect(localBranches.contains(branch))
         }
     }
 
-    func testBranchListLocal() throws {
-        // Create a new repository at the temporary directory
-        let repository = Repository.mock(named: "test-branch-list-local", in: Self.directory)
+    @Test("List local branches")
+    func branchListLocal() async throws {
+        let repository = mockRepository()
 
-        // Get the local branches
-        // (must be empty because the main branch is unborn)
+        // Get the local branches (must be empty because the main branch is unborn)
         let branches = try repository.branch.list(.local)
-
-        // Check empty branches
-        XCTAssertEqual(branches, [])
+        #expect(branches.isEmpty)
 
         // Create a new commit
         let commit = try repository.mockCommit()
 
         // Create some new branches
         let newBranchNames = ["other-branch", "another-branch", "one-more-branch", "last-branch"]
-
         for name in newBranchNames {
             try repository.branch.create(named: name, target: commit)
         }
@@ -206,65 +174,77 @@ final class BranchCollectionTests: SwiftGitXTestCase {
         // Get the local branches
         let localBranches = try repository.branch.list(.local)
 
-        // Check the local branches count
-        XCTAssertEqual(localBranches.count, 5)
+        // Check the local branches count (including the main branch)
+        #expect(localBranches.count == 5)
 
-        // Check the local branches (we need to check main branch too)
+        // Check the local branches
         let allBranchNames = localBranches.map(\.name)
         for name in allBranchNames {
             let branch = try repository.branch.get(named: name, type: .local)
-            XCTAssertTrue(localBranches.contains(branch))
+            #expect(localBranches.contains(branch))
         }
     }
+}
 
-    func testBranchUpstream() async throws {
-        // Create a mock repository at the temporary directory
+// MARK: - Remote Branch Operations
+
+@Suite("Branch Remote Operations", .tags(.branch, .collection, .remote))
+final class BranchRemoteTests: SwiftGitXTest {
+    @Test("Get upstream branch")
+    func branchGetUpstream() async throws {
         let source = URL(string: "https://github.com/ibrahimcetin/SwiftGitX.git")!
-        let directory = Repository.mockDirectory(named: "test-branch-upstream", in: Self.directory)
+        let directory = mockDirectory()
         let repository = try await Repository.clone(from: source, to: directory)
 
-        // Get the upstream branch of the current branch
-        let upstreamBranch = try XCTUnwrap(repository.branch.current.upstream as? Branch)
+        let upstreamBranch = try #require(repository.branch.current.upstream as? Branch)
 
-        // Check the upstream branch
-        XCTAssertEqual(upstreamBranch.name, "origin/main")
-        XCTAssertEqual(upstreamBranch.fullName, "refs/remotes/origin/main")
-        XCTAssertEqual(upstreamBranch.type, .remote)
+        #expect(upstreamBranch.name == "origin/main")
+        #expect(upstreamBranch.fullName == "refs/remotes/origin/main")
+        #expect(upstreamBranch.type == .remote)
     }
 
-    func testBranchSetUpstream() async throws {
-        // Create a mock repository at the temporary directory
+    @Test("Set upstream branch")
+    func branchSetUpstream() async throws {
         let source = URL(string: "https://github.com/ibrahimcetin/SwiftGitX.git")!
-        let directory = Repository.mockDirectory(named: "test-branch-set-upstream", in: Self.directory)
+        let directory = mockDirectory()
         let repository = try await Repository.clone(from: source, to: directory)
 
         // Unset the existing upstream branch
         try repository.branch.setUpstream(to: nil)
+
         // Be sure that the upstream branch is unset
-        try XCTAssertNil(repository.branch.current.upstream)
+        #expect(try repository.branch.current.upstream == nil)
 
         // Set the upstream branch
         try repository.branch.setUpstream(to: repository.branch.get(named: "origin/main"))
 
         // Check if the upstream branch is set
-        let upstreamBranch = try XCTUnwrap(repository.branch.current.upstream as? Branch)
-        XCTAssertEqual(upstreamBranch.name, "origin/main")
-        XCTAssertEqual(upstreamBranch.fullName, "refs/remotes/origin/main")
+        let upstreamBranch = try #require(repository.branch.current.upstream as? Branch)
+        #expect(upstreamBranch.name == "origin/main")
+        #expect(upstreamBranch.fullName == "refs/remotes/origin/main")
     }
 
-    func testBranchUnsetUpstream() async throws {
-        // Create a mock repository at the temporary directory
+    @Test("Unset upstream branch")
+    func branchUnsetUpstream() async throws {
         let source = URL(string: "https://github.com/ibrahimcetin/SwiftGitX.git")!
-        let directory = Repository.mockDirectory(named: "test-branch-unset-upstream", in: Self.directory)
+        let directory = mockDirectory()
         let repository = try await Repository.clone(from: source, to: directory)
 
         // Be sure that the upstream branch is set
-        try XCTAssertNotNil(repository.branch.current.upstream)
+        #expect(try repository.branch.current.upstream != nil)
 
         // Unset the upstream branch
         try repository.branch.setUpstream(to: nil)
 
         // Check if the upstream branch is unset
-        try XCTAssertNil(repository.branch.current.upstream)
+        #expect(try repository.branch.current.upstream == nil)
     }
+}
+
+// MARK: - Tag Extensions
+
+extension Testing.Tag {
+    @Tag static var branch: Self
+    @Tag static var collection: Self
+    @Tag static var remote: Self
 }
