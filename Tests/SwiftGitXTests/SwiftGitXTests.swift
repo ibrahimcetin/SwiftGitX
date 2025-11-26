@@ -11,12 +11,12 @@ class SwiftGitXTestCase: XCTestCase {
         super.setUp()
 
         // Initialize the SwiftGitX library
-        XCTAssertNoThrow(try SwiftGitX.initialize())
+        XCTAssertNoThrow(try SwiftGitXRuntime.initialize())
     }
 
     override class func tearDown() {
         // Shutdown the SwiftGitX library
-        XCTAssertNoThrow(try SwiftGitX.shutdown())
+        XCTAssertNoThrow(try SwiftGitXRuntime.shutdown())
 
         // Remove the temporary directory for the tests
         try? FileManager.default.removeItem(at: Repository.testsDirectory.appending(component: directory))
@@ -34,11 +34,11 @@ class SwiftGitXTest {
     }
 
     init() throws {
-        try SwiftGitX.initialize()
+        try SwiftGitXRuntime.initialize()
     }
 
     deinit {
-        _ = try? SwiftGitX.shutdown()
+        _ = try? SwiftGitXRuntime.shutdown()
     }
 }
 
@@ -48,7 +48,7 @@ struct SwiftGitXTests {
     @Test("Test SwiftGitX Initialize")
     func testSwiftGitXInitialize() async throws {
         // Initialize the SwiftGitX library
-        let count = try SwiftGitX.initialize()
+        let count = try SwiftGitXRuntime.initialize()
 
         // Check if the initialization count is valid
         #expect(count > 0)
@@ -57,7 +57,7 @@ struct SwiftGitXTests {
     @Test("Test SwiftGitX Shutdown")
     func testSwiftGitXShutdown() async throws {
         // Shutdown the SwiftGitX library
-        let count = try SwiftGitX.shutdown()
+        let count = try SwiftGitXRuntime.shutdown()
 
         // Check if the shutdown count is valid
         #expect(count >= 0)
@@ -67,7 +67,7 @@ struct SwiftGitXTests {
     func testSwiftGitXShutdownWithoutInitialize() async throws {
         // Shutdown the SwiftGitX library
         let result = #expect(throws: SwiftGitXError.self) {
-            try SwiftGitX.shutdown()
+            try SwiftGitXRuntime.shutdown()
         }
 
         let error = try #require(result)
@@ -89,7 +89,7 @@ struct SwiftGitXTests {
     @Test("Test SwiftGitX Version")
     func testVersion() throws {
         // Get the libgit2 version
-        let version = SwiftGitX.libgit2Version
+        let version = SwiftGitXRuntime.libgit2Version
 
         // Check if the version is valid
         #expect(version == "1.9.0")

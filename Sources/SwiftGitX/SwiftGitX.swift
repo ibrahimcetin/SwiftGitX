@@ -8,7 +8,7 @@
 import libgit2
 
 /// The main entry point for the SwiftGitX library.
-public enum SwiftGitX {
+public enum SwiftGitXRuntime {
     /// Initialize the SwiftGitX
     ///
     /// - Returns: the number of initializations of the library.
