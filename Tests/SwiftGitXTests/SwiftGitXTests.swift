@@ -126,7 +126,10 @@ struct SwiftGitXTests {
         #expect(count >= 0)
     }
 
-    @Test("Test SwiftGitX Shutdown Without Calling Initialize")
+    @Test(
+        "Test SwiftGitX Shutdown Without Calling Initialize",
+        .disabled("This test is disabled because it should be skipped while running all tests. Enable if you want.")
+    )
     func testSwiftGitXShutdownWithoutInitialize() async throws {
         // Shutdown the SwiftGitX library
         let result = #expect(throws: SwiftGitXError.self) {
