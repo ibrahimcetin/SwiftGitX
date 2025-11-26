@@ -64,13 +64,31 @@ extension Repository {
 
     /// Creates a mock file in the repository.
     ///
-    /// - Parameter name: The name of the file
-    func mockFile(named name: String, content: String? = nil) throws -> URL {
-        let file = try workingDirectory.appending(component: name)
+    /// - Parameters:
+    ///   - name: The name of the file. If nil, generates a unique sequential name.
+    ///   - content: The content of the file. If nil, generates sequential content.
+    ///
+    /// - Returns: The URL of the created file.
+    func mockFile(named name: String? = nil, content: String? = nil) throws -> URL {
+        // Count existing files in working directory to determine sequence number
+        let existingFiles = try FileManager.default.contentsOfDirectory(
+            at: workingDirectory,
+            includingPropertiesForKeys: nil
+        ).filter { !$0.lastPathComponent.hasPrefix(".") }  // Exclude hidden files
+
+        let sequenceNumber = existingFiles.count + 1
+
+        // Generate a unique file name if none is provided
+        let fileName = name ?? "file-\(sequenceNumber).txt"
+
+        // Generate sequential content if none is provided
+        let fileContent = content ?? "File \(sequenceNumber) content\n"
+
+        let file = try workingDirectory.appending(component: fileName)
 
         FileManager.default.createFile(
             atPath: file.path,
-            contents: (content ?? "Welcome to SwiftGitX!\n").data(using: .utf8)
+            contents: fileContent.data(using: .utf8)
         )
 
         return file
