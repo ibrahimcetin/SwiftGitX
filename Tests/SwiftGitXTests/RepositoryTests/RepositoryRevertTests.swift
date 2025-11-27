@@ -1,10 +1,3 @@
-//
-//  RepositoryOperationTests.swift
-//
-//
-//  Created by İbrahim Çetin on 18.06.2024.
-//
-
 import Foundation
 import SwiftGitX
 import Testing
