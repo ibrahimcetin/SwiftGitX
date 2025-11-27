@@ -10,6 +10,7 @@ extension Testing.Tag {
 
     // Operations
     @Tag static var add: Self
+    @Tag static var clone: Self
     @Tag static var commit: Self
     @Tag static var diff: Self
     @Tag static var fetch: Self
