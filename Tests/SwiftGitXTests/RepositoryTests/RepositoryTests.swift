@@ -3,66 +3,6 @@ import SwiftGitX
 import Testing
 
 extension Repository {
-    static var testsDirectory: URL {
-        URL.temporaryDirectory.appending(components: "SwiftGitXTests")
-    }
-
-    /// Creates a new mock repository at the temporary directory with the given name.
-    ///
-    /// - Parameters
-    ///   - name: The name of the mock repository to create.
-    ///   - parentDirectoryName: The name of the parent directory to create the repository in.
-    ///
-    /// - Returns: The created repository.
-    static func mock(named name: String, in parentDirectoryName: String, isBare: Bool = false) -> Repository {
-        do {
-            let directory = mockDirectory(named: name, in: parentDirectoryName)
-
-            // Create a new repository at the temporary directory
-            return try Repository.create(at: directory, isBare: isBare)
-        } catch {
-            fatalError("Failed to create a mock repository: \(error)")
-        }
-    }
-
-    /// Creates an empty directory with the given name in the temporary directory.
-    ///
-    /// - Parameters
-    ///   - name: The name of the directory to create.
-    ///   - parentDirectoryName: The name of the parent directory to create the directory in.
-    ///   - create: Whether to create the directory or not.
-    ///
-    /// - Returns: The URL of the directory.
-    ///
-    /// If the directory already exists, it always will be removed.
-    /// If the `create` parameter is set to `true`, the directory will be created.
-    /// Otherwise, only the URL of the empty directory will be returned.
-    static func mockDirectory(named name: String, in parentDirectoryName: String, create: Bool = false) -> URL {
-        do {
-            // Create a new directory url in the temporary directory
-            let directory =
-                if parentDirectoryName.isEmpty {
-                    Self.testsDirectory.appending(components: name)
-                } else {
-                    Self.testsDirectory.appending(components: parentDirectoryName, name)
-                }
-
-            // Remove the directory if it already exists to create an empty repository
-            if FileManager.default.fileExists(atPath: directory.path) {
-                try FileManager.default.removeItem(at: directory)
-            }
-
-            // Create the directory
-            if create {
-                try FileManager.default.createDirectory(at: directory, withIntermediateDirectories: false)
-            }
-
-            return directory
-        } catch {
-            fatalError("Failed to create a mock directory: \(error)")
-        }
-    }
-
     /// Creates a mock file in the repository.
     ///
     /// - Parameters:

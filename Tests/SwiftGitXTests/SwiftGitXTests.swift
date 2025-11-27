@@ -1,29 +1,6 @@
+import Foundation
 import SwiftGitX
 import Testing
-import XCTest
-
-class SwiftGitXTestCase: XCTestCase {
-    static var directory: String {
-        String(describing: Self.self)
-    }
-
-    override class func setUp() {
-        super.setUp()
-
-        // Initialize the SwiftGitX library
-        XCTAssertNoThrow(try SwiftGitXRuntime.initialize())
-    }
-
-    override class func tearDown() {
-        // Shutdown the SwiftGitX library
-        XCTAssertNoThrow(try SwiftGitXRuntime.shutdown())
-
-        // Remove the temporary directory for the tests
-        try? FileManager.default.removeItem(at: Repository.testsDirectory.appending(component: directory))
-
-        super.tearDown()
-    }
-}
 
 /// Base class for SwiftGitX tests to initialize and shutdown the library
 ///
