@@ -9,7 +9,7 @@ final class ConfigCollectionTests: SwiftGitXTest {
         let repository = mockRepository()
 
         // Set local default branch name
-        try repository.config.set("feature", forKey: "init.defaultBranch")
+        try repository.config.set("init.defaultBranch", to: "feature")
 
         #expect(try repository.config.defaultBranchName == "feature")
     }
@@ -19,7 +19,7 @@ final class ConfigCollectionTests: SwiftGitXTest {
         let repository = mockRepository()
 
         // Set local default branch name
-        try repository.config.set("develop", forKey: "init.defaultBranch")
+        try repository.config.set("init.defaultBranch", to: "develop")
 
         // Test if the default branch name is set
         #expect(try repository.config.defaultBranchName == "develop")
@@ -32,8 +32,8 @@ final class ConfigCollectionTests: SwiftGitXTest {
         let repository = mockRepository()
 
         // Set local user name and email
-        try repository.config.set("İbrahim Çetin", forKey: "user.name")
-        try repository.config.set("mail@ibrahimcetin.dev", forKey: "user.email")
+        try repository.config.set("user.name", to: "İbrahim Çetin")
+        try repository.config.set("user.email", to: "mail@ibrahimcetin.dev")
 
         #expect(try repository.config.string(forKey: "user.name") == "İbrahim Çetin")
         #expect(try repository.config.string(forKey: "user.email") == "mail@ibrahimcetin.dev")
@@ -50,9 +50,9 @@ final class ConfigCollectionTests: SwiftGitXTest {
         let repository = mockRepository()
 
         // Set multiple configuration values
-        try repository.config.set("true", forKey: "core.autocrlf")
-        try repository.config.set("false", forKey: "core.filemode")
-        try repository.config.set("main", forKey: "init.defaultBranch")
+        try repository.config.set("core.autocrlf", to: "true")
+        try repository.config.set("core.filemode", to: "false")
+        try repository.config.set("init.defaultBranch", to: "main")
 
         // Verify all values are set correctly
         #expect(try repository.config.string(forKey: "core.autocrlf") == "true")
@@ -65,11 +65,11 @@ final class ConfigCollectionTests: SwiftGitXTest {
         let repository = mockRepository()
 
         // Set initial value
-        try repository.config.set("develop", forKey: "init.defaultBranch")
+        try repository.config.set("init.defaultBranch", to: "develop")
         #expect(try repository.config.defaultBranchName == "develop")
 
         // Override with new value
-        try repository.config.set("main", forKey: "init.defaultBranch")
+        try repository.config.set("init.defaultBranch", to: "main")
         #expect(try repository.config.defaultBranchName == "main")
     }
 }
