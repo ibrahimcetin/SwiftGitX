@@ -50,12 +50,39 @@ public struct ConfigCollection {
     ///   - key: The key to set the value for.
     ///
     /// This will set the configuration value for the repository.
+    @available(*, deprecated, message: "Use set(_:to:) instead. Be careful, parameter order is reversed.")
     public func set(_ string: String, forKey key: String) throws(SwiftGitXError) {
+        try self.set(key, to: string)
+    }
+
+    /// Sets a configuration value for the repository.
+    ///
+    /// - Parameters:
+    ///   - key: The key to set the value for.
+    ///   - value: The value to set.
+    ///
+    /// This will set the configuration value for the repository, if a repository instance is provided.
+    /// Otherwise, it will set the global configuration value.
+    ///
+    /// ### Example
+    ///
+    /// ```swift
+    /// // Set repository-specific configuration values
+    /// try repository.config.set("user.name", to: "John Doe")
+    /// try repository.config.set("user.email", to: "john.doe@example.com")
+    /// ```
+    ///
+    /// ```swift
+    /// // Set global configuration values
+    /// try Repository.config.set("user.name", to: "John Doe")
+    /// try Repository.config.set("user.email", to: "john.doe@example.com")
+    /// ```
+    public func set(_ key: String, to value: String) throws(SwiftGitXError) {
         let configPointer = try self.configPointer()
         defer { git_config_free(configPointer) }
 
         try git(operation: .config) {
-            git_config_set_string(configPointer, key, string)
+            git_config_set_string(configPointer, key, value)
         }
     }
 
