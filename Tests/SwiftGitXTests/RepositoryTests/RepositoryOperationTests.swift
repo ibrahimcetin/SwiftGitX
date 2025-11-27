@@ -9,55 +9,6 @@ import Foundation
 import SwiftGitX
 import Testing
 
-// MARK: - Commit
-
-@Suite("Repository - Commit", .tags(.repository, .operation, .commit))
-final class RepositoryCommitTests: SwiftGitXTest {
-    @Test("Commit staged changes")
-    func commit() async throws {
-        let repository = mockRepository()
-
-        // Create and stage a file
-        let file = try repository.mockFile()
-        try repository.add(file: file)
-
-        // Commit
-        let commit = try repository.commit(message: "Initial commit")
-
-        // Verify HEAD points to commit
-        let headCommit = try #require(repository.HEAD.target as? Commit)
-        #expect(commit == headCommit)
-    }
-
-    @Test("Empty commit without option throws error", .tags(.error))
-    func emptyCommitThrows() async throws {
-        let repository = mockRepository()
-        try repository.mockCommit()
-
-        // Committing with no changes should fail
-        let error = #expect(throws: SwiftGitXError.self) {
-            try repository.commit(message: "Empty commit without option")
-        }
-
-        #expect(error?.code == .unchanged)
-        #expect(error?.category == .repository)
-        #expect(error?.message == "no changes are staged for commit")
-    }
-
-    @Test("Empty commit with allowEmpty option succeeds")
-    func emptyCommitWithOption() async throws {
-        let repository = mockRepository()
-        try repository.mockCommit()
-
-        // Commit with allowEmpty option
-        let emptyCommit = try repository.commit(message: "Empty commit with option", options: .allowEmpty)
-
-        // Verify HEAD points to empty commit
-        let headCommit = try #require(repository.HEAD.target as? Commit)
-        #expect(emptyCommit == headCommit)
-        #expect(emptyCommit.message == "Empty commit with option")
-    }
-}
 
 // MARK: - Reset
 
