@@ -13,10 +13,12 @@ extension Testing.Tag {
     @Tag static var commit: Self
     @Tag static var diff: Self
     @Tag static var log: Self
+    @Tag static var patch: Self
     @Tag static var reset: Self
     @Tag static var restore: Self
     @Tag static var revert: Self
     @Tag static var show: Self
+    @Tag static var status: Self
     @Tag static var `switch`: Self
 
     // Collections
