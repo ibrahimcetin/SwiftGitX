@@ -2,8 +2,6 @@ import Foundation
 import SwiftGitX
 import Testing
 
-// MARK: - Repository Fetch
-
 @Suite("Repository - Fetch", .tags(.repository, .operation, .fetch))
 final class RepositoryFetchTests: SwiftGitXTest {
     @Test("Fetch from remote repository")
