@@ -161,6 +161,7 @@ final class TagCreateTests: SwiftGitXTest {
 
         #expect(annotatedTag.name == "v1.0.0")
         #expect(annotatedTag.fullName == "refs/tags/v1.0.0")
+        #expect(annotatedTag.target.id == commit.id)
         #expect(annotatedTag.message == nil)
 
         // Tag target is the commit
@@ -178,6 +179,7 @@ final class TagCreateTests: SwiftGitXTest {
 
         #expect(lightweightTag.name == "v1.0.0")
         #expect(lightweightTag.fullName == "refs/tags/v1.0.0")
+        #expect(lightweightTag.target.id == commit.id)
 
         // Lightweight tag has same ID as commit
         #expect(lightweightTag.id == commit.id)
@@ -205,6 +207,7 @@ final class TagCreateTests: SwiftGitXTest {
 
         #expect(lightweightTag.name == "v1.0.0")
         #expect(lightweightTag.fullName == "refs/tags/v1.0.0")
+        #expect(lightweightTag.target.id == tree.id)
 
         // Tag ID matches tree ID
         #expect(lightweightTag.id == tree.id)
@@ -235,6 +238,7 @@ final class TagCreateTests: SwiftGitXTest {
 
         #expect(lightweightTag.name == "v1.0.0")
         #expect(lightweightTag.fullName == "refs/tags/v1.0.0")
+        #expect(lightweightTag.target.id == blob.id)
 
         // Tag ID matches blob ID
         #expect(lightweightTag.id == blob.id)
@@ -262,6 +266,7 @@ final class TagCreateTests: SwiftGitXTest {
 
         #expect(lightweightTag.name == "v1.0.0")
         #expect(lightweightTag.fullName == "refs/tags/v1.0.0")
+        #expect(lightweightTag.target.id == annotatedTag.id)
 
         // Tag ID matches annotated tag ID
         #expect(lightweightTag.id == annotatedTag.id)
@@ -289,6 +294,8 @@ final class TagCreateTests: SwiftGitXTest {
         )
 
         #expect(tag.name == "v1.0.0")
+        #expect(tag.fullName == "refs/tags/v1.0.0")
+        #expect(tag.target.id == commit.id)
         #expect(tag.message == "Release version 1.0.0")
         #expect(tag.tagger != nil)
     }
@@ -314,6 +321,7 @@ final class TagCreateTests: SwiftGitXTest {
 
         #expect(tag.name == "v1.0.0")
         #expect(tag.message == "Tagged by custom tagger")
+        #expect(tag.target.id == commit.id)
 
         let tagger = try #require(tag.tagger)
         #expect(tagger.name == "Custom Tagger")
@@ -329,6 +337,7 @@ final class TagCreateTests: SwiftGitXTest {
         // Create initial tag
         let originalTag = try repository.tag.create(named: "v1.0.0", target: commit1, message: "Original")
         #expect(originalTag.message == "Original")
+        #expect(originalTag.target.id == commit1.id)
 
         // Overwrite with force
         let newTag = try repository.tag.create(
@@ -340,6 +349,7 @@ final class TagCreateTests: SwiftGitXTest {
 
         #expect(newTag.name == "v1.0.0")
         #expect(newTag.message == "Overwritten")
+        #expect(newTag.target.id == commit2.id)
 
         // Verify the tag now points to commit2
         let tagTarget = try #require(newTag.target as? Commit)
