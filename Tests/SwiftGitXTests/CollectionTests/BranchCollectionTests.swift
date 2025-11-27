@@ -352,10 +352,7 @@ final class BranchRemoteTests: SwiftGitXTest {
         let repository = try await Repository.clone(from: source, to: directory)
 
         // Create a new local branch from the current HEAD
-        guard let commit = try repository.HEAD.target as? Commit else {
-            Issue.record("HEAD does not point to a commit")
-            return
-        }
+        let commit = try #require(repository.HEAD.target as? Commit)
         let newBranch = try repository.branch.create(named: "feature", target: commit)
 
         // Set upstream for the new branch explicitly
