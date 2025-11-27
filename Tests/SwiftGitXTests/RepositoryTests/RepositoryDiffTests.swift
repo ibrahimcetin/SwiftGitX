@@ -11,11 +11,11 @@ final class RepositoryDiffHEADToWorkingTreeTests: SwiftGitXTest {
         let repository = mockRepository()
 
         // Create a commit
-        let file = try repository.mockFile(named: "README.md", content: "The commit content!\n")
-        try repository.mockCommit(file: file)
+        let file1 = try repository.mockFile()
+        try repository.mockCommit(file: file1)
 
         // Update the file content
-        try Data("The working tree content!\n".utf8).write(to: file)
+        try Data("The working tree content!\n".utf8).write(to: file1)
 
         // Get the diff between HEAD and the working tree
         let diff = try repository.diff()
@@ -28,7 +28,7 @@ final class RepositoryDiffHEADToWorkingTreeTests: SwiftGitXTest {
         // Check the hunk lines
         #expect(hunk.lines.count == 2)
         #expect(hunk.lines[0].type == .deletion)
-        #expect(hunk.lines[0].content == "The commit content!\n")
+        #expect(hunk.lines[0].content == "File 1 content\n")
 
         #expect(hunk.lines[1].type == .addition)
         #expect(hunk.lines[1].content == "The working tree content!\n")
@@ -223,22 +223,6 @@ final class RepositoryDiffBetweenObjectsTests: SwiftGitXTest {
         let newContent = try #require(String(data: newBlob.content, encoding: .utf8))
         #expect(newContent == "Hello, World!\n")
     }
-
-    /// This method creates two commits in the repository and returns them.
-    private func mockCommits(repository: Repository) throws -> (initialCommit: Commit, secondCommit: Commit) {
-        let file = try repository.mockFile(named: "README.md", content: "Hello, SwiftGitX!\n")
-
-        // Commit the changes
-        let initialCommit = try repository.mockCommit(message: "Initial commit", file: file)
-
-        // Modify the file
-        try Data("Hello, World!\n".utf8).write(to: file)
-
-        // Commit the changes
-        let secondCommit = try repository.mockCommit(message: "Second commit", file: file)
-
-        return (initialCommit, secondCommit)
-    }
 }
 
 // MARK: - Diff Commit
@@ -298,22 +282,6 @@ final class RepositoryDiffCommitTests: SwiftGitXTest {
         // Check if the diff count is correct
         #expect(diff.changes.count == 0)
     }
-
-    /// This method creates two commits in the repository and returns them.
-    private func mockCommits(repository: Repository) throws -> (initialCommit: Commit, secondCommit: Commit) {
-        let file = try repository.mockFile(named: "README.md", content: "Hello, SwiftGitX!\n")
-
-        // Commit the changes
-        let initialCommit = try repository.mockCommit(message: "Initial commit", file: file)
-
-        // Modify the file
-        try Data("Hello, World!\n".utf8).write(to: file)
-
-        // Commit the changes
-        let secondCommit = try repository.mockCommit(message: "Second commit", file: file)
-
-        return (initialCommit, secondCommit)
-    }
 }
 
 // MARK: - Diff Equality
@@ -339,22 +307,22 @@ final class RepositoryDiffEqualityTests: SwiftGitXTest {
         // Check the diff properties are equal between the two repositories
         #expect(sameDiff == diff)
     }
-
-    /// This method creates two commits in the repository and returns them.
-    private func mockCommits(repository: Repository) throws -> (initialCommit: Commit, secondCommit: Commit) {
-        let file = try repository.mockFile(named: "README.md", content: "Hello, SwiftGitX!\n")
-
-        // Commit the changes
-        let initialCommit = try repository.mockCommit(message: "Initial commit", file: file)
-
-        // Modify the file
-        try Data("Hello, World!\n".utf8).write(to: file)
-
-        // Commit the changes
-        let secondCommit = try repository.mockCommit(message: "Second commit", file: file)
-
-        return (initialCommit, secondCommit)
-    }
 }
 
-// MARK: - Patch Creation
+// MARK: - Helper Functions
+
+/// This method creates two commits in the repository and returns them.
+private func mockCommits(repository: Repository) throws -> (initialCommit: Commit, secondCommit: Commit) {
+    let file = try repository.mockFile(named: "README.md", content: "Hello, SwiftGitX!\n")
+
+    // Commit the changes
+    let initialCommit = try repository.mockCommit(message: "Initial commit", file: file)
+
+    // Modify the file
+    try Data("Hello, World!\n".utf8).write(to: file)
+
+    // Commit the changes
+    let secondCommit = try repository.mockCommit(message: "Second commit", file: file)
+
+    return (initialCommit, secondCommit)
+}
