@@ -2,6 +2,9 @@
 protocol LibGit2RawRepresentable: Equatable, Hashable {
     associatedtype RawType
 
+    /// The raw libgit2 struct that this type wraps.
+    var raw: RawType { get }
+
     /// Initializes the type with a raw libgit2 struct.
     ///
     /// - Parameter raw: The raw libgit2 struct.

@@ -1,7 +1,8 @@
 import libgit2
 
+// ? Can we use LibGit2RawRepresentable here?
 /// Represents the status of a file in the repository.
-public struct StatusEntry: LibGit2RawRepresentable {
+public struct StatusEntry: Equatable, Hashable {
     /// The status of the file.
     ///
     /// This is an array of ``Status-swift.enum`` cases because a file can have multiple statuses.
