@@ -78,6 +78,16 @@ final class TagLookupTests: SwiftGitXTest {
         #expect(lightweightTag.tagger == nil)
         #expect(lightweightTag.message == nil)
     }
+
+    @Test("Get non-existent tag throws error", .tags(.error))
+    func getNotFoundThrows() async throws {
+        let repository = mockRepository()
+        try repository.mockCommit()
+
+        #expect(throws: SwiftGitXError.self) {
+            try repository.tag.get(named: "non-existent")
+        }
+    }
 }
 
 // MARK: - List & Iterator Operations
@@ -264,6 +274,90 @@ final class TagCreateTests: SwiftGitXTest {
         // Lightweight tags have no tagger or message
         #expect(lightweightTag.tagger == nil)
         #expect(lightweightTag.message == nil)
+    }
+
+    @Test("Create annotated tag with message")
+    func createAnnotatedWithMessage() async throws {
+        let repository = mockRepository()
+        let commit = try repository.mockCommit()
+
+        // Create annotated tag with message
+        let tag = try repository.tag.create(
+            named: "v1.0.0",
+            target: commit,
+            message: "Release version 1.0.0"
+        )
+
+        #expect(tag.name == "v1.0.0")
+        #expect(tag.message == "Release version 1.0.0")
+        #expect(tag.tagger != nil)
+    }
+
+    @Test("Create annotated tag with custom tagger")
+    func createAnnotatedWithCustomTagger() async throws {
+        let repository = mockRepository()
+        let commit = try repository.mockCommit()
+
+        // Create custom tagger signature
+        let customTagger = Signature(
+            name: "Custom Tagger",
+            email: "tagger@example.com"
+        )
+
+        // Create annotated tag with custom tagger
+        let tag = try repository.tag.create(
+            named: "v1.0.0",
+            target: commit,
+            tagger: customTagger,
+            message: "Tagged by custom tagger"
+        )
+
+        #expect(tag.name == "v1.0.0")
+        #expect(tag.message == "Tagged by custom tagger")
+
+        let tagger = try #require(tag.tagger)
+        #expect(tagger.name == "Custom Tagger")
+        #expect(tagger.email == "tagger@example.com")
+    }
+
+    @Test("Create tag with force overwrites existing")
+    func createWithForceOverwrites() async throws {
+        let repository = mockRepository()
+        let commit1 = try repository.mockCommit()
+        let commit2 = try repository.mockCommit()
+
+        // Create initial tag
+        let originalTag = try repository.tag.create(named: "v1.0.0", target: commit1, message: "Original")
+        #expect(originalTag.message == "Original")
+
+        // Overwrite with force
+        let newTag = try repository.tag.create(
+            named: "v1.0.0",
+            target: commit2,
+            message: "Overwritten",
+            force: true
+        )
+
+        #expect(newTag.name == "v1.0.0")
+        #expect(newTag.message == "Overwritten")
+
+        // Verify the tag now points to commit2
+        let tagTarget = try #require(newTag.target as? Commit)
+        #expect(tagTarget == commit2)
+    }
+
+    @Test("Create existing tag without force throws error", .tags(.error))
+    func createExistingTagThrows() async throws {
+        let repository = mockRepository()
+        let commit = try repository.mockCommit()
+
+        // Create initial tag
+        try repository.tag.create(named: "v1.0.0", target: commit)
+
+        // Try to create again without force
+        #expect(throws: SwiftGitXError.self) {
+            try repository.tag.create(named: "v1.0.0", target: commit)
+        }
     }
 }
 
