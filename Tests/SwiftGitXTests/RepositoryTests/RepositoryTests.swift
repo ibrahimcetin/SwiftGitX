@@ -10,7 +10,7 @@ extension Repository {
     ///   - content: The content of the file. If nil, generates sequential content.
     ///
     /// - Returns: The URL of the created file.
-    func mockFile(named name: String? = nil, content: String? = nil) throws -> URL {
+    func mockFile(name: String? = nil, content: String? = nil) throws -> URL {
         // Count existing files in working directory to determine sequence number
         let existingFiles = try FileManager.default.contentsOfDirectory(
             at: workingDirectory,
@@ -43,7 +43,7 @@ extension Repository {
         let sequenceNumber = commitCount + 1
 
         // Generate a unique file if none is provided to ensure we always have changes to commit
-        let fileToAdd = try file ?? mockFile(named: "file-\(sequenceNumber).txt")
+        let fileToAdd = try file ?? mockFile(name: "file-\(sequenceNumber).txt")
 
         // Add the file to the index
         try add(file: fileToAdd)

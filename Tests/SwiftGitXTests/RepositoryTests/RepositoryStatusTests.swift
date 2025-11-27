@@ -9,7 +9,7 @@ final class RepositoryStatusTests: SwiftGitXTest {
         let repository = mockRepository()
 
         // Create a new file in the repository
-        _ = try repository.mockFile(named: "README.md", content: "Hello, World!")
+        _ = try repository.mockFile()
 
         // Get the status of the repository
         let status = try repository.status()
@@ -30,10 +30,10 @@ final class RepositoryStatusTests: SwiftGitXTest {
         // Check the status entry diff delta properties
         #expect(workingTreeChanges.type == .untracked)
 
-        #expect(workingTreeChanges.newFile.path == "README.md")
-        #expect(workingTreeChanges.oldFile.path == "README.md")
+        #expect(workingTreeChanges.newFile.path == "file-1.txt")
+        #expect(workingTreeChanges.oldFile.path == "file-1.txt")
 
-        #expect(workingTreeChanges.newFile.size == "Hello, World!".count)
+        #expect(workingTreeChanges.newFile.size == "File 1 content\n".count)
         #expect(workingTreeChanges.oldFile.size == 0)
     }
 
@@ -42,10 +42,10 @@ final class RepositoryStatusTests: SwiftGitXTest {
         let repository = mockRepository()
 
         // Create a new file in the repository
-        let file = try repository.mockFile(named: "README.md", content: "Hello, World!")
+        let file = try repository.mockFile()
 
         // Add the file
-        try repository.add(path: file.lastPathComponent)
+        try repository.add(file: file)
 
         // Get the status of the repository
         let status = try repository.status()
@@ -64,16 +64,16 @@ final class RepositoryStatusTests: SwiftGitXTest {
         // Check the status entry diff delta properties
         #expect(statusEntryDiffDelta.type == .added)
 
-        #expect(statusEntryDiffDelta.newFile.path == "README.md")
-        #expect(statusEntryDiffDelta.oldFile.path == "README.md")
+        #expect(statusEntryDiffDelta.newFile.path == "file-1.txt")
+        #expect(statusEntryDiffDelta.oldFile.path == "file-1.txt")
 
-        #expect(statusEntryDiffDelta.newFile.size == "Hello, World!".count)
+        #expect(statusEntryDiffDelta.newFile.size == "File 1 content\n".count)
         #expect(statusEntryDiffDelta.oldFile.size == 0)
 
         // Get the blob of the new file
         let blob: Blob = try repository.show(id: statusEntryDiffDelta.newFile.id)
         let blobText = try #require(String(data: blob.content, encoding: .utf8))
-        #expect(blobText == "Hello, World!")
+        #expect(blobText == "File 1 content\n")
     }
 
     @Test("Repository status file new and modified")
@@ -81,7 +81,7 @@ final class RepositoryStatusTests: SwiftGitXTest {
         let repository = mockRepository()
 
         // Create a new file in the repository
-        let file = try repository.mockFile(named: "README.md", content: "Hello, World!")
+        let file = try repository.mockFile()
 
         // Add the file
         try repository.add(file: file)

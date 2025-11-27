@@ -12,16 +12,16 @@ final class IndexAddOperationsTests: SwiftGitXTest {
         let repository = mockRepository()
 
         // Create a file in the repository
-        _ = try repository.mockFile(named: "README.md", content: "Hello, World!")
+        let file = try repository.mockFile()
 
         // Stage the file using the file path
-        try repository.add(path: "README.md")
+        try repository.add(file: file)
 
         // Verify that the file is staged
         let statusEntry = try #require(repository.status().first)
 
         #expect(statusEntry.status == [.indexNew])  // The file is staged
-        #expect(statusEntry.index?.newFile.path == "README.md")
+        #expect(statusEntry.index?.newFile.path == "file-1.txt")
         #expect(statusEntry.workingTree == nil)  // The file is staged and not in the working tree anymore
     }
 
@@ -443,13 +443,13 @@ final class IndexEdgeCasesTests: SwiftGitXTest {
         let repository = mockRepository()
 
         // Create file with spaces in name
-        let file = try repository.mockFile(named: "My Document.txt")
+        let file = try repository.mockFile()
         try repository.add(file: file)
 
         // Verify file is staged
         let statusEntry = try #require(repository.status().first)
         #expect(statusEntry.status == [.indexNew])
-        #expect(statusEntry.index?.newFile.path == "My Document.txt")
+        #expect(statusEntry.index?.newFile.path == "file-1.txt")
     }
 
     @Test("Add file with special characters in name")
@@ -457,13 +457,13 @@ final class IndexEdgeCasesTests: SwiftGitXTest {
         let repository = mockRepository()
 
         // Create file with special characters (that are valid in filenames)
-        let file = try repository.mockFile(named: "file-name_v1.2.txt")
+        let file = try repository.mockFile()
         try repository.add(file: file)
 
         // Verify file is staged
         let statusEntry = try #require(repository.status().first)
         #expect(statusEntry.status == [.indexNew])
-        #expect(statusEntry.index?.newFile.path == "file-name_v1.2.txt")
+        #expect(statusEntry.index?.newFile.path == "file-1.txt")
     }
 }
 

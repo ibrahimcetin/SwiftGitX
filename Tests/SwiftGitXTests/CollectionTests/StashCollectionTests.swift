@@ -164,10 +164,10 @@ final class StashApplyTests: SwiftGitXTest {
         try repository.mockCommit()
 
         // Create two stashes with different files
-        let file1 = try repository.mockFile(named: "first.txt")
+        let file1 = try repository.mockFile(name: "first.txt")
         try repository.stash.save(message: "First", options: .includeUntracked)
 
-        let file2 = try repository.mockFile(named: "second.txt")
+        let file2 = try repository.mockFile(name: "second.txt")
         try repository.stash.save(message: "Second", options: .includeUntracked)
 
         // Both files gone
@@ -227,10 +227,10 @@ final class StashPopTests: SwiftGitXTest {
         try repository.mockCommit()
 
         // Create two stashes
-        let file1 = try repository.mockFile(named: "first.txt")
+        let file1 = try repository.mockFile(name: "first.txt")
         try repository.stash.save(message: "First", options: .includeUntracked)
 
-        _ = try repository.mockFile(named: "second.txt")
+        _ = try repository.mockFile(name: "second.txt")
         try repository.stash.save(message: "Second", options: .includeUntracked)
 
         // Pop the older stash (index 1)

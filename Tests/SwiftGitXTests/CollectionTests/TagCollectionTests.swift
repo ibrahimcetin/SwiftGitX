@@ -128,8 +128,8 @@ final class TagListTests: SwiftGitXTest {
         let repository = mockRepository()
 
         // Create commits and tags
-        let commits = try (0..<5).map { index in
-            try repository.mockCommit(file: repository.mockFile(named: "file-\(index).txt"))
+        let commits = try (0..<5).map { _ in
+            try repository.mockCommit(file: repository.mockFile())
         }
 
         let tagNames = ["v1.0.0", "v1.0.1", "v1.0.2", "v1.0.3", "v1.0.4"]

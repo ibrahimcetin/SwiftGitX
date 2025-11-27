@@ -36,14 +36,14 @@ final class RepositoryRestoreTests: SwiftGitXTest {
         let repository = mockRepository()
 
         // Create and commit a file
-        let workingTreeFile = try repository.mockFile(named: "WorkingTree.md", content: "Hello, World!")
+        let workingTreeFile = try repository.mockFile(name: "WorkingTree.md", content: "Hello, World!")
         try repository.mockCommit(file: workingTreeFile)
 
         // Modify the file (should not be restored)
         try Data("Should not be restored!".utf8).write(to: workingTreeFile)
 
         // Create and stage another file
-        let stagedFile = try repository.mockFile(named: "Stage.md", content: "Stage me!")
+        let stagedFile = try repository.mockFile(name: "Stage.md", content: "Stage me!")
         try repository.add(file: stagedFile)
 
         // Restore staged only
@@ -63,10 +63,12 @@ final class RepositoryRestoreTests: SwiftGitXTest {
     @Test("Restore both working tree and staged")
     func restoreWorkingTreeAndStaged() async throws {
         let repository = mockRepository()
-        try repository.mockCommit()
+
+        let file = try repository.mockFile()
+        try repository.mockCommit(file: file)
 
         // Modify file from mockCommit and stage it
-        let file = try repository.mockFile(named: "file-1.txt", content: "Restore stage area!")
+        try Data("Restore stage area!".utf8).write(to: file)
         try repository.add(file: file)
 
         // Modify again (working tree change)
@@ -87,7 +89,7 @@ final class RepositoryRestoreTests: SwiftGitXTest {
         try repository.mockCommit()
 
         // Create and stage a new file
-        let fileToDelete = try repository.mockFile(named: "DeleteMe.md", content: "Delete me from stage area!")
+        let fileToDelete = try repository.mockFile(name: "DeleteMe.md", content: "Delete me from stage area!")
         try repository.add(file: fileToDelete)
 
         // Modify it

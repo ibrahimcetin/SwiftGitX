@@ -16,7 +16,7 @@ final class RepositoryPushTests: SwiftGitXTest {
         let localRepository = try await Repository.clone(from: remoteDirectory, to: localDirectory)
 
         // Create a new commit in the local repository
-        try localRepository.mockCommit(message: "Pushed commit", file: localRepository.mockFile(named: "PushedFile.md"))
+        try localRepository.mockCommit(message: "Pushed commit", file: localRepository.mockFile(name: "PushedFile.md"))
 
         // Push the commit to the remote repository
         try await localRepository.push()
@@ -34,7 +34,7 @@ final class RepositoryPushTests: SwiftGitXTest {
         let localRepository = mockRepository(suffix: "--local")
 
         // Create a new commit in the local repository
-        try localRepository.mockCommit(message: "Pushed commit", file: localRepository.mockFile(named: "PushedFile.md"))
+        try localRepository.mockCommit(message: "Pushed commit", file: localRepository.mockFile(name: "PushedFile.md"))
 
         // Add remote repository to the local repository
         try localRepository.remote.add(named: "origin", at: remoteRepository.path)

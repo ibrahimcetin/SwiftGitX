@@ -9,7 +9,7 @@ final class RepositoryPatchTests: SwiftGitXTest {
         let repository = mockRepository()
 
         // Create a commit
-        let file = try repository.mockFile(named: "README.md", content: "The old data!\n")
+        let file = try repository.mockFile(content: "The old data!\n")
         try repository.mockCommit(file: file)
 
         // Update the file content and add the file
@@ -42,7 +42,7 @@ final class RepositoryPatchTests: SwiftGitXTest {
         let repository = mockRepository()
 
         // Create a commit
-        let file = try repository.mockFile(named: "README.md", content: "The old data!\n")
+        let file = try repository.mockFile(content: "The old data!\n")
         try repository.mockCommit(file: file)
 
         // Update the file content and add the file
@@ -70,7 +70,7 @@ final class RepositoryPatchTests: SwiftGitXTest {
         let repository = mockRepository()
 
         // Create a commit
-        let file = try repository.mockFile(named: "README.md", content: "The old data!\n")
+        let file = try repository.mockFile(content: "The old data!\n")
         try repository.mockCommit(file: file)
 
         // Update the file content and add the file
@@ -95,7 +95,7 @@ final class RepositoryPatchTests: SwiftGitXTest {
         let repository = mockRepository()
 
         // Create a commit
-        let file = try repository.mockFile(named: "README.md", content: "The old data!\n")
+        let file = try repository.mockFile(content: "The old data!\n")
         try repository.mockCommit(file: file)
 
         // Update the file content and add the file
@@ -121,7 +121,7 @@ final class RepositoryPatchTests: SwiftGitXTest {
         let repository = mockRepository()
 
         // Create a new file in the repository
-        _ = try repository.mockFile(named: "README.md", content: "Hello, World!\n")
+        _ = try repository.mockFile(content: "Hello, World!\n")
 
         // Get the status of the file
         let status: StatusEntry = try #require(repository.status().first)

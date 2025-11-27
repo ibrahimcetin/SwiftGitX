@@ -113,7 +113,7 @@ final class RepositoryDiffHEADToWorkingTreeTests: SwiftGitXTest {
     /// This func creates base state for diff HEAD tests. It creates a commit, a staged change and a working tree change.
     private func createBaseStateForDiffHEAD(_ repository: Repository) throws {
         // Create a file
-        let file = try repository.mockFile(named: "README.md", content: "The commit content!\n")
+        let file = try repository.mockFile(content: "The commit content!\n")
 
         // Create a commit
         try repository.mockCommit(file: file)
@@ -239,7 +239,7 @@ final class RepositoryDiffCommitTests: SwiftGitXTest {
         // Remove old content and write new content than commit
         let headCommit = try repository.mockCommit(
             message: "Third commit",
-            file: repository.mockFile(named: "README.md", content: "Merhaba, Dünya!")
+            file: repository.mockFile(name: "README.md", content: "Merhaba, Dünya!")
         )
 
         // Get the diff between the latest commit and its parent
@@ -313,7 +313,7 @@ final class RepositoryDiffEqualityTests: SwiftGitXTest {
 
 /// This method creates two commits in the repository and returns them.
 private func mockCommits(repository: Repository) throws -> (initialCommit: Commit, secondCommit: Commit) {
-    let file = try repository.mockFile(named: "README.md", content: "Hello, SwiftGitX!\n")
+    let file = try repository.mockFile(name: "README.md", content: "Hello, SwiftGitX!\n")
 
     // Commit the changes
     let initialCommit = try repository.mockCommit(message: "Initial commit", file: file)
