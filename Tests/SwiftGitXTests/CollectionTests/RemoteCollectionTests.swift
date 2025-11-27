@@ -54,7 +54,7 @@ final class RemoteCollectionTests: SwiftGitXTest {
         #expect(branches.count == 8)
 
         // Clone remote repository to local repository
-        let localDirectory = mockDirectory(function: "remoteBranches-local")
+        let localDirectory = mockDirectory(suffix: "--local")
         let localRepository = try await Repository.clone(from: remoteRepository.workingDirectory, to: localDirectory)
 
         // Get the remote from the repository excluding the main branch
