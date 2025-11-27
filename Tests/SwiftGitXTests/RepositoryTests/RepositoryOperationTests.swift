@@ -9,26 +9,6 @@ import Foundation
 import SwiftGitX
 import Testing
 
-// MARK: - Log
-
-@Suite("Repository - Log", .tags(.repository, .operation, .log))
-final class RepositoryLogTests: SwiftGitXTest {
-    @Test("Log returns commits in order")
-    func log() async throws {
-        let repository = mockRepository()
-
-        // Create multiple commits
-        let commits = try (0..<10).map { _ in try repository.mockCommit() }
-
-        // Get log with reverse sorting
-        let commitSequence = try repository.log(from: repository.HEAD, sorting: .reverse)
-        let logCommits = Array(commitSequence)
-        #expect(logCommits == commits)
-    }
-}
-
-// MARK: - Revert
-
 @Suite("Repository - Revert", .tags(.repository, .operation, .revert))
 final class RepositoryRevertTests: SwiftGitXTest {
     @Test("Revert commit")
