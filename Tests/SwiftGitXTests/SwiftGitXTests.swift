@@ -29,10 +29,6 @@ class SwiftGitXTestCase: XCTestCase {
 ///
 /// - Important: Inherit from this class to create a test suite.
 class SwiftGitXTest {
-    static var directory: String {
-        String(describing: Self.self)
-    }
-
     /// Creates a new mock repository with auto-generated unique name based on the calling test.
     ///
     /// This method automatically generates a unique repository name using the file and function
