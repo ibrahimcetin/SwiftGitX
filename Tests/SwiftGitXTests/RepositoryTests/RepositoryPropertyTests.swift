@@ -1,10 +1,12 @@
+import Foundation
 import SwiftGitX
-import XCTest
+import Testing
 
-final class RepositoryPropertyTests: SwiftGitXTestCase {
-    func testRepositoryHEAD() throws {
-        // Create a new repository at the temporary directory
-        let repository = Repository.mock(named: "test-head", in: Self.directory)
+@Suite("Repository - Properties", .tags(.repository))
+final class RepositoryPropertyTests: SwiftGitXTest {
+    @Test("Repository HEAD")
+    func repositoryHEAD() async throws {
+        let repository = mockRepository()
 
         // Commit the file
         try repository.mockCommit()
@@ -13,82 +15,96 @@ final class RepositoryPropertyTests: SwiftGitXTestCase {
         let head = try repository.HEAD
 
         // Check the HEAD reference
-        XCTAssertEqual(head.name, "main")
-        XCTAssertEqual(head.fullName, "refs/heads/main")
+        #expect(head.name == "main")
+        #expect(head.fullName == "refs/heads/main")
     }
 
-    func testRepositoryHEADUnborn() throws {
-        // Create a new repository at the temporary directory
-        let repository = Repository.mock(named: "test-head-unborn", in: Self.directory)
+    @Test("Repository HEAD unborn")
+    func repositoryHEADUnborn() async throws {
+        let repository = mockRepository()
 
-        XCTAssertTrue(repository.isHEADUnborn)
+        #expect(repository.isHEADUnborn)
 
-        XCTAssertThrowsError(try repository.HEAD)
+        let error = #expect(throws: SwiftGitXError.self) {
+            try repository.HEAD
+        }
+
+        #expect(error?.code == .unbornBranch)
+        #expect(error?.category == .reference)
+        #expect(error?.message == "reference 'refs/heads/main' not found")
     }
 
-    func testRepositoryWorkingDirectory() throws {
-        // Create a new repository at the temporary directory
-        let repository = Repository.mock(named: "test-working-directory", in: Self.directory)
+    @Test("Repository working directory")
+    func repositoryWorkingDirectory() async throws {
+        let repository = mockRepository()
 
         // Get the working directory of the repository
-        let repositoryWorkingDirectory = try XCTUnwrap(repository.workingDirectory)
+        let repositoryWorkingDirectory = try repository.workingDirectory
 
-        // Get the path of the mock repository directory
-        let expectedDirectory =
-            if Self.directory.isEmpty {
-                URL.temporaryDirectory.appending(components: "SwiftGitXTests", "test-working-directory/")
-            } else {
-                URL.temporaryDirectory.appending(
-                    components: "SwiftGitXTests", Self.directory, "test-working-directory/")
-            }
+        // The working directory should exist and be valid
+        #expect(repositoryWorkingDirectory.hasDirectoryPath)
+        #expect(repositoryWorkingDirectory.lastPathComponent != ".git")
 
-        // Check if the working directory is the same as the expected directory
-        XCTAssertEqual(repositoryWorkingDirectory.resolvingSymlinksInPath(), expectedDirectory)
+        // Expected path for the repository working directory
+        let expectedWorkingDirectory = URL.temporaryDirectory
+            .appending(component: "SwiftGitXTests")
+            .appending(components: "RepositoryPropertyTests", "RepositoryPropertyTests", "repositoryWorkingDirectory/")
+
+        #expect(repositoryWorkingDirectory.resolvingSymlinksInPath() == expectedWorkingDirectory)
     }
 
-    func testRepositoryPath() throws {
-        // Create a new repository at the temporary directory
-        let repository = Repository.mock(named: "test-path", in: Self.directory)
+    @Test("Repository path")
+    func repositoryPath() async throws {
+        let repository = mockRepository()
 
-        // Get the path of the mock repository directory
-        let expectedDirectory =
-            if Self.directory.isEmpty {
-                URL.temporaryDirectory.appending(components: "SwiftGitXTests", "test-path/.git/")
-            } else {
-                URL.temporaryDirectory.appending(components: "SwiftGitXTests", Self.directory, "test-path/.git/")
-            }
+        // The repository path should point to the .git directory
+        #expect(repository.path.lastPathComponent == ".git")
+        #expect(repository.path.hasDirectoryPath)
 
-        // Check if the path is the same as the expected directory
-        XCTAssertEqual(repository.path.resolvingSymlinksInPath(), expectedDirectory)
+        // Expected path for the repository working directory
+        let expectedPath = URL.temporaryDirectory
+            .appending(component: "SwiftGitXTests")
+            .appending(components: "RepositoryPropertyTests", "RepositoryPropertyTests", "repositoryPath", ".git/")
+
+        #expect(repository.path.resolvingSymlinksInPath() == expectedPath)
     }
 
-    func testRepositoryPath_Bare() {
-        // Create a new repository at the temporary directory
-        let repository = Repository.mock(named: "test-path-bare", in: Self.directory, isBare: true)
+    @Test("Repository path for bare repository")
+    func repositoryPathBare() async throws {
+        let repository = mockRepository(isBare: true)
 
-        // Get the path of the mock repository directory
-        let expectedDirectory =
-            if Self.directory.isEmpty {
-                URL.temporaryDirectory.appending(components: "SwiftGitXTests", "test-path-bare/")
-            } else {
-                URL.temporaryDirectory.appending(components: "SwiftGitXTests", Self.directory, "test-path-bare/")
-            }
+        // For bare repositories, the path should not end with .git
+        #expect(repository.path.lastPathComponent != ".git")
+        #expect(repository.path.hasDirectoryPath)
 
-        // Check if the path is the same as the expected directory
-        XCTAssertEqual(repository.path.resolvingSymlinksInPath(), expectedDirectory)
+        // Expected path for the repository path
+        let expectedPath = URL.temporaryDirectory
+            .appending(component: "SwiftGitXTests")
+            .appending(components: "RepositoryPropertyTests", "RepositoryPropertyTests", "repositoryPathBare/")
+
+        #expect(repository.path.resolvingSymlinksInPath() == expectedPath)
+
+        // Bare repositories don't have a working directory
+        let error = #expect(throws: SwiftGitXError.self) {
+            try repository.workingDirectory
+        }
+
+        #expect(error?.code == .error)
+        #expect(error?.category == .repository)
+        #expect(error?.message == "Failed to get working directory")
     }
 
-    func testRepositoryIsEmpty() throws {
-        // Create a new repository at the temporary directory
-        let repository = Repository.mock(named: "test-is-empty", in: Self.directory)
+    @Test("Repository is empty")
+    func repositoryIsEmpty() async throws {
+        let repository = mockRepository()
 
         // Check if the repository is empty
-        XCTAssertTrue(repository.isEmpty)
+        #expect(repository.isEmpty)
 
         // Create a commit
-        _ = try repository.mockCommit()
+        try repository.mockCommit()
 
         // Check if the repository is not empty
-        XCTAssertFalse(repository.isEmpty)
+        #expect(repository.isEmpty == false)
     }
 }
