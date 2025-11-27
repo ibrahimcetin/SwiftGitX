@@ -11,12 +11,13 @@ extension Testing.Tag {
     // Operations
     @Tag static var add: Self
     @Tag static var commit: Self
+    @Tag static var diff: Self
+    @Tag static var log: Self
     @Tag static var reset: Self
     @Tag static var restore: Self
-    @Tag static var log: Self
     @Tag static var revert: Self
-    @Tag static var diff: Self
     @Tag static var show: Self
+    @Tag static var `switch`: Self
 
     // Collections
     @Tag static var branch: Self
@@ -28,6 +29,6 @@ extension Testing.Tag {
     @Tag static var tag: Self
 
     // Models
-    @Tag static var signature: Self
     @Tag static var oid: Self
+    @Tag static var signature: Self
 }
