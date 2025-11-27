@@ -1,11 +1,12 @@
-import XCTest
+import SwiftGitX
+import Testing
 
-@testable import SwiftGitX
-
-final class RepositoryShowTests: SwiftGitXTestCase {
-    func testShowCommit() throws {
+@Suite("Repository - Show", .tags(.repository, .operation, .show))
+final class RepositoryShowTests: SwiftGitXTest {
+    @Test("Show Commit")
+    func showCommit() throws {
         // Create mock repository at the temporary directory
-        let repository = Repository.mock(named: "test-show-commit", in: Self.directory)
+        let repository = mockRepository()
 
         // Create a new commit
         let commit = try repository.mockCommit()
@@ -14,12 +15,13 @@ final class RepositoryShowTests: SwiftGitXTestCase {
         let commitShowed: Commit = try repository.show(id: commit.id)
 
         // Check if the commit is the same
-        XCTAssertEqual(commit, commitShowed)
+        #expect(commit == commitShowed)
     }
 
-    func testShowTag() throws {
+    @Test("Show Tag")
+    func showTag() throws {
         // Create mock repository at the temporary directory
-        let repository = Repository.mock(named: "test-show-tag", in: Self.directory)
+        let repository = mockRepository()
 
         // Create a new commit
         let commit = try repository.mockCommit()
@@ -28,15 +30,16 @@ final class RepositoryShowTests: SwiftGitXTestCase {
         let tag = try repository.tag.create(named: "v1.0.0", target: commit)
 
         // Get the tag by id
-        let tagShowed: Tag = try repository.show(id: tag.id)
+        let tagShowed: SwiftGitX.Tag = try repository.show(id: tag.id)
 
         // Check if the tag is the same
-        XCTAssertEqual(tag, tagShowed)
+        #expect(tag == tagShowed)
     }
 
-    func testShowTree() throws {
+    @Test("Show Tree")
+    func showTree() throws {
         // Create mock repository at the temporary directory
-        let repository = Repository.mock(named: "test-show-tree", in: Self.directory)
+        let repository = mockRepository()
 
         // Create a new commit
         let commit = try repository.mockCommit()
@@ -48,35 +51,39 @@ final class RepositoryShowTests: SwiftGitXTestCase {
         let treeShowed: Tree = try repository.show(id: tree.id)
 
         // Check if the tree is the same
-        XCTAssertEqual(tree, treeShowed)
+        #expect(tree == treeShowed)
     }
 
-    func testShowBlob() throws {
+    @Test("Show Blob")
+    func showBlob() throws {
         // Create mock repository at the temporary directory
-        let repository = Repository.mock(named: "test-show-blob", in: Self.directory)
+        let repository = mockRepository()
 
         // Create a new commit
         let commit = try repository.mockCommit()
 
         // Get the blob of the file
-        let blob = try XCTUnwrap(commit.tree.entries.first)
+        let blob = try #require(commit.tree.entries.first)
 
         // Get the blob by id
         let blobShowed: Blob = try repository.show(id: blob.id)
 
         // Check if the blob properties are the same
-        XCTAssertEqual(blob.id, blobShowed.id)
-        XCTAssertEqual(blob.type, blobShowed.type)
+        #expect(blob.id == blobShowed.id)
+        #expect(blob.type == blobShowed.type)
     }
 
-    func testShowInvalidObjectType() throws {
+    @Test("Show Invalid Object Type Should Fail")
+    func showInvalidObjectType() throws {
         // Create mock repository at the temporary directory
-        let repository = Repository.mock(named: "test-show-invalid-object-type", in: Self.directory)
+        let repository = mockRepository()
 
         // Create a new commit
         let commit = try repository.mockCommit()
 
         // Try to show a commit as a tree
-        XCTAssertThrowsError(try repository.show(id: commit.id) as Tree)
+        #expect(throws: Error.self) {
+            try repository.show(id: commit.id) as Tree
+        }
     }
 }
