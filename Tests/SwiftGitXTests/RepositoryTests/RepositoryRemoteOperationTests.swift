@@ -1,15 +1,20 @@
+import Foundation
 import SwiftGitX
-import XCTest
+import Testing
 
-final class RepositoryRemoteOperationTests: SwiftGitXTestCase {
-    func testRepositoryPush() async throws {
+// MARK: - Repository Push
+
+@Suite("Repository - Push", .tags(.repository, .operation, .push))
+final class RepositoryPushTests: SwiftGitXTest {
+    @Test("Push to remote repository")
+    func pushToRemote() async throws {
         // Create a mock repository at the temporary directory
         let source = URL(string: "https://github.com/ibrahimcetin/SwiftGitX.git")!
-        let remoteDirectory = Repository.mockDirectory(named: "test-push--remote", in: Self.directory)
+        let remoteDirectory = mockDirectory(suffix: "--remote")
         let remoteRepository = try await Repository.clone(from: source, to: remoteDirectory, options: .bare)
 
         // Clone the remote repository to the local repository
-        let localDirectory = Repository.mockDirectory(named: "test-push--local", in: Self.directory)
+        let localDirectory = mockDirectory(suffix: "--local")
         let localRepository = try await Repository.clone(from: remoteDirectory, to: localDirectory)
 
         // Create a new commit in the local repository
@@ -19,15 +24,16 @@ final class RepositoryRemoteOperationTests: SwiftGitXTestCase {
         try await localRepository.push()
 
         // Check if the commit is pushed
-        try XCTAssertEqual(localRepository.HEAD.target.id, remoteRepository.HEAD.target.id)
+        #expect(try localRepository.HEAD.target.id == remoteRepository.HEAD.target.id)
     }
 
-    func testRepositoryPushEmptyRemote_SetUpstream() async throws {
+    @Test("Push to empty remote and set upstream")
+    func pushEmptyRemoteSetUpstream() async throws {
         // Create a mock repository at the temporary directory
-        let remoteRepository = Repository.mock(named: "test-push-empty--remote", in: Self.directory, isBare: true)
+        let remoteRepository = mockRepository(suffix: "--remote", isBare: true)
 
         // Create a mock repository at the temporary directory
-        let localRepository = Repository.mock(named: "test-push-empty--local", in: Self.directory)
+        let localRepository = mockRepository(suffix: "--local")
 
         // Create a new commit in the local repository
         try localRepository.mockCommit(message: "Pushed commit", file: localRepository.mockFile(named: "PushedFile.md"))
@@ -39,30 +45,36 @@ final class RepositoryRemoteOperationTests: SwiftGitXTestCase {
         try await localRepository.push()
 
         // Check if the commit is pushed
-        try XCTAssertEqual(localRepository.HEAD.target.id, remoteRepository.HEAD.target.id)
+        #expect(try localRepository.HEAD.target.id == remoteRepository.HEAD.target.id)
 
         // Upstream branch should be nil
-        try XCTAssertNil(localRepository.branch.current.upstream)
+        #expect(try localRepository.branch.current.upstream == nil)
 
         // Set the upstream branch
         try localRepository.branch.setUpstream(to: localRepository.branch.get(named: "origin/main"))
 
         // Check if the upstream branch is set
-        let upstreamBranch = try XCTUnwrap(localRepository.branch.current.upstream as? Branch)
-        XCTAssertEqual(upstreamBranch.target.id, try remoteRepository.HEAD.target.id)
-        XCTAssertEqual(upstreamBranch.name, "origin/main")
-        XCTAssertEqual(upstreamBranch.fullName, "refs/remotes/origin/main")
+        let upstreamBranch = try #require(localRepository.branch.current.upstream as? Branch)
+        #expect(upstreamBranch.target.id == (try remoteRepository.HEAD.target.id))
+        #expect(upstreamBranch.name == "origin/main")
+        #expect(upstreamBranch.fullName == "refs/remotes/origin/main")
     }
+}
 
-    func testRepositoryFetch() async throws {
+// MARK: - Repository Fetch
+
+@Suite("Repository - Fetch", .tags(.repository, .operation, .fetch))
+final class RepositoryFetchTests: SwiftGitXTest {
+    @Test("Fetch from remote repository")
+    func fetchFromRemote() async throws {
         // Create remote repository
-        let remoteRepository = Repository.mock(named: "test-fetch--remote", in: Self.directory)
+        let remoteRepository = mockRepository(suffix: "--remote")
 
         // Create mock commit in the remote repository
         try remoteRepository.mockCommit()
 
         // Create local repository
-        let localRepository = Repository.mock(named: "test-fetch--local", in: Self.directory)
+        let localRepository = mockRepository(suffix: "--local")
 
         // Add remote repository to the local repository
         try localRepository.remote.add(named: "origin", at: remoteRepository.workingDirectory)
@@ -72,6 +84,6 @@ final class RepositoryRemoteOperationTests: SwiftGitXTestCase {
 
         // Check if the remote branch is fetched
         let remoteBranch = try localRepository.branch.get(named: "origin/main")
-        try XCTAssertEqual(remoteBranch.target.id, remoteRepository.HEAD.target.id)
+        #expect(try remoteBranch.target.id == remoteRepository.HEAD.target.id)
     }
 }
