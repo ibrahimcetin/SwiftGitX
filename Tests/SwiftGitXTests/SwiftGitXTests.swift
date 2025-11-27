@@ -140,7 +140,3 @@ struct SwiftGitXRuntimeTests {
         #expect(version == "1.9.0")
     }
 }
-
-extension Testing.Tag {
-    @Tag static var runtime: Self
-}

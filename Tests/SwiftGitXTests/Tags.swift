@@ -7,6 +7,7 @@ extension Testing.Tag {
     @Tag static var model: Self
     @Tag static var operation: Self
     @Tag static var repository: Self
+    @Tag static var runtime: Self
 
     // Operations
     @Tag static var add: Self
