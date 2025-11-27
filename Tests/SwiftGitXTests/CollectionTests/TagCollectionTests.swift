@@ -1,284 +1,274 @@
 import SwiftGitX
-import XCTest
+import Testing
 
-class TagCollectionTests: SwiftGitXTestCase {
-    func testTagLookupSubscript() throws {
-        // Create a new repository at the temporary directory
-        let repository = Repository.mock(named: "test-tag-lookup-subscript", in: Self.directory)
+// MARK: - Lookup Operations
 
-        // Create mock commit
+@Suite("Tag Collection - Lookup Operations", .tags(.tag, .collection))
+final class TagLookupTests: SwiftGitXTest {
+    @Test("Lookup tag by subscript")
+    func lookupSubscript() async throws {
+        let repository = mockRepository()
         let commit = try repository.mockCommit()
 
-        // Create a new tag
+        // Create a tag
         try repository.tag.create(named: "v1.0.0", target: commit)
 
-        // Lookup the tag by name
-        let tag = try XCTUnwrap(repository.tag["v1.0.0"])
+        // Lookup by subscript
+        let tag = try #require(repository.tag["v1.0.0"])
 
-        // Check the tag properties
-        XCTAssertEqual(tag.name, "v1.0.0")
-        XCTAssertEqual(tag.fullName, "refs/tags/v1.0.0")
+        #expect(tag.name == "v1.0.0")
+        #expect(tag.fullName == "refs/tags/v1.0.0")
 
-        // The tag target is the commit
-        let tagTarget = try XCTUnwrap(tag.target as? Commit)
-        XCTAssertEqual(tagTarget, commit)
+        // Tag target is the commit
+        let tagTarget = try #require(tag.target as? Commit)
+        #expect(tagTarget == commit)
     }
 
-    func testTagLookupSubscriptFailure() throws {
-        // Create a new repository at the temporary directory
-        let repository = Repository.mock(named: "test-tag-lookup-subscript-failure", in: Self.directory)
-
-        // Create mock commit
+    @Test("Lookup non-existent tag returns nil")
+    func lookupSubscriptNotFound() async throws {
+        let repository = mockRepository()
         try repository.mockCommit()
 
-        XCTAssertNil(repository.tag["v1.0.0"])
+        #expect(repository.tag["v1.0.0"] == nil)
     }
 
-    func testTagLookupAnnotated() throws {
-        // Create a new repository at the temporary directory
-        let repository = Repository.mock(named: "test-tag-lookup-annotated", in: Self.directory)
-
-        // Create mock commit
+    @Test("Get annotated tag")
+    func getAnnotated() async throws {
+        let repository = mockRepository()
         let commit = try repository.mockCommit()
 
-        // Create a new tag
+        // Create annotated tag with message
         try repository.tag.create(named: "v1.0.0", target: commit, message: "Initial release")
 
-        // Lookup the tag by name
+        // Lookup the tag
         let annotatedTag = try repository.tag.get(named: "v1.0.0")
 
-        // Check the tag properties
-        XCTAssertEqual(annotatedTag.name, "v1.0.0")
-        XCTAssertEqual(annotatedTag.fullName, "refs/tags/v1.0.0")
+        #expect(annotatedTag.name == "v1.0.0")
+        #expect(annotatedTag.fullName == "refs/tags/v1.0.0")
+        #expect(annotatedTag.message == "Initial release")
 
-        // The tag target is the commit
-        let tagTarget = try XCTUnwrap(annotatedTag.target as? Commit)
-        XCTAssertEqual(tagTarget, commit)
-
-        XCTAssertEqual(annotatedTag.message, "Initial release")
+        // Tag target is the commit
+        let tagTarget = try #require(annotatedTag.target as? Commit)
+        #expect(tagTarget == commit)
     }
 
-    func testTagLookupLightweight() throws {
-        // Create a new repository at the temporary directory
-        let repository = Repository.mock(named: "test-tag-lookup-lightweight", in: Self.directory)
-
-        // Create mock commit
+    @Test("Get lightweight tag")
+    func getLightweight() async throws {
+        let repository = mockRepository()
         let commit = try repository.mockCommit()
 
-        // Create a new tag
+        // Create lightweight tag
         try repository.tag.create(named: "v1.0.0", target: commit, type: .lightweight)
 
-        // Lookup the tag by short name
+        // Lookup the tag
         let lightweightTag = try repository.tag.get(named: "v1.0.0")
 
-        // Check the tag properties
-        XCTAssertEqual(lightweightTag.name, "v1.0.0")
-        XCTAssertEqual(lightweightTag.fullName, "refs/tags/v1.0.0")
+        #expect(lightweightTag.name == "v1.0.0")
+        #expect(lightweightTag.fullName == "refs/tags/v1.0.0")
 
-        // Check if the tag id is the same as the blob id
-        XCTAssertEqual(lightweightTag.id, commit.id)
-        XCTAssertEqual(lightweightTag.id, lightweightTag.target.id)
+        // Lightweight tag ID matches commit ID
+        #expect(lightweightTag.id == commit.id)
+        #expect(lightweightTag.id == lightweightTag.target.id)
 
-        // Lightweight tag target is the commit
-        let lightweightTagTarget = try XCTUnwrap(lightweightTag.target as? Commit)
-        XCTAssertEqual(lightweightTagTarget, commit)
+        // Tag target is the commit
+        let lightweightTagTarget = try #require(lightweightTag.target as? Commit)
+        #expect(lightweightTagTarget == commit)
 
-        // Lightweight tag have no tagger and message
-        XCTAssertNil(lightweightTag.tagger)
-        XCTAssertNil(lightweightTag.message)
+        // Lightweight tags have no tagger or message
+        #expect(lightweightTag.tagger == nil)
+        #expect(lightweightTag.message == nil)
+    }
+}
+
+// MARK: - List & Iterator Operations
+
+@Suite("Tag Collection - List & Iterator", .tags(.tag, .collection))
+final class TagListTests: SwiftGitXTest {
+    @Test("List returns empty array when no tags exist")
+    func listEmpty() async throws {
+        let repository = mockRepository()
+        try repository.mockCommit()
+
+        let tags = try repository.tag.list()
+        #expect(tags.isEmpty)
     }
 
-    func testTagList() throws {
-        // Create a new repository at the temporary directory
-        let repository = Repository.mock(named: "test-tag-list", in: Self.directory)
-
-        // Check if the tag list is empty
-        XCTAssertTrue(try repository.tag.list().isEmpty)
-
-        // Create mock commit
+    @Test("List returns all tags")
+    func listAll() async throws {
+        let repository = mockRepository()
         let commit = try repository.mockCommit()
 
-        // Create some tags
-        let newTagNames = ["v1.0.0", "v1.0.1", "v1.0.2", "v1.0.3"]
-
-        for name in newTagNames {
+        // Create tags
+        let tagNames = ["v1.0.0", "v1.0.1", "v1.0.2", "v1.0.3"]
+        for name in tagNames {
             try repository.tag.create(named: name, target: commit)
         }
 
         // List all tags
         let tags = try repository.tag.list()
 
-        // Check if the tag is in the list
-        XCTAssertEqual(tags.count, 4)
-
+        #expect(tags.count == 4)
         for tag in tags {
-            XCTAssertTrue(newTagNames.contains(tag.name))
+            #expect(tagNames.contains(tag.name))
         }
     }
 
-    func testTagIterator() throws {
-        // Create a new repository at the temporary directory
-        let repository = Repository.mock(named: "test-tag-iterator", in: Self.directory)
+    @Test("Iterate over tags")
+    func iterate() async throws {
+        let repository = mockRepository()
 
-        // Create mock commits
+        // Create commits and tags
         let commits = try (0..<5).map { index in
-            try repository.mockCommit(file: repository.mockFile(named: "README-\(index).md"))
+            try repository.mockCommit(file: repository.mockFile(named: "file-\(index).txt"))
         }
 
-        // Create some tags
-        let newTagNames = ["v1.0.0", "v1.0.1", "v1.0.2", "v1.0.3", "v1.0.4"]
-
-        for (name, commit) in zip(newTagNames, commits) {
+        let tagNames = ["v1.0.0", "v1.0.1", "v1.0.2", "v1.0.3", "v1.0.4"]
+        for (name, commit) in zip(tagNames, commits) {
             try repository.tag.create(named: name, target: commit, message: "Release \(name)")
         }
 
-        // Iterate over the tags
+        // Iterate over tags
         for (tag, commit) in zip(repository.tag, commits) {
-            XCTAssertTrue(newTagNames.contains(tag.name))
-            XCTAssertEqual("refs/tags/\(tag.name)", tag.fullName)
-            XCTAssertEqual(tag.target as? Commit, commit)
-            XCTAssertEqual(tag.message, "Release \(tag.name)")
+            #expect(tagNames.contains(tag.name))
+            #expect(tag.fullName == "refs/tags/\(tag.name)")
+            #expect(tag.target as? Commit == commit)
+            #expect(tag.message == "Release \(tag.name)")
         }
     }
+}
 
-    func testTagCreateAnnotated() throws {
-        // Create mock repository at the temporary directory
-        let repository = Repository.mock(named: "test-tag-create-annotated", in: Self.directory)
+// MARK: - Create Operations
 
-        // Commit the changes
+@Suite("Tag Collection - Create Operations", .tags(.tag, .collection))
+final class TagCreateTests: SwiftGitXTest {
+    @Test("Create annotated tag")
+    func createAnnotated() async throws {
+        let repository = mockRepository()
         let commit = try repository.mockCommit()
 
-        // Create a new tag
+        // Create annotated tag (default type)
         let annotatedTag = try repository.tag.create(named: "v1.0.0", target: repository.HEAD.target)
 
-        // Check the tag properties
-        XCTAssertEqual(annotatedTag.name, "v1.0.0")
-        XCTAssertEqual(annotatedTag.fullName, "refs/tags/v1.0.0")
+        #expect(annotatedTag.name == "v1.0.0")
+        #expect(annotatedTag.fullName == "refs/tags/v1.0.0")
+        #expect(annotatedTag.message == nil)
 
-        // The tag target is the commit
-        let tagTarget = try XCTUnwrap(annotatedTag.target as? Commit)
-        XCTAssertEqual(tagTarget, commit)
-
-        XCTAssertNil(annotatedTag.message)
+        // Tag target is the commit
+        let tagTarget = try #require(annotatedTag.target as? Commit)
+        #expect(tagTarget == commit)
     }
 
-    func testTagCreateLightweight() throws {
-        // Create mock repository at the temporary directory
-        let repository = Repository.mock(named: "test-tag-create-lightweight", in: Self.directory)
-
-        // Commit the changes
+    @Test("Create lightweight tag")
+    func createLightweight() async throws {
+        let repository = mockRepository()
         let commit = try repository.mockCommit()
 
-        // Create a new tag
+        // Create lightweight tag
         let lightweightTag = try repository.tag.create(named: "v1.0.0", target: commit, type: .lightweight)
 
-        // Check the name of the tag
-        XCTAssertEqual(lightweightTag.name, "v1.0.0")
-        XCTAssertEqual(lightweightTag.fullName, "refs/tags/v1.0.0")
+        #expect(lightweightTag.name == "v1.0.0")
+        #expect(lightweightTag.fullName == "refs/tags/v1.0.0")
 
-        // Lightweight tag have the same id as the target commit
-        XCTAssertEqual(lightweightTag.id, commit.id)
-        XCTAssertEqual(lightweightTag.id, lightweightTag.target.id)
+        // Lightweight tag has same ID as commit
+        #expect(lightweightTag.id == commit.id)
+        #expect(lightweightTag.id == lightweightTag.target.id)
 
-        // Lightweight tag target is the commit
-        let lightweightTagTarget = try XCTUnwrap(lightweightTag.target as? Commit)
-        XCTAssertEqual(lightweightTagTarget, commit)
+        // Tag target is the commit
+        let lightweightTagTarget = try #require(lightweightTag.target as? Commit)
+        #expect(lightweightTagTarget == commit)
 
-        // Lightweight tag have no tagger and message
-        XCTAssertNil(lightweightTag.tagger)
-        XCTAssertNil(lightweightTag.message)
+        // Lightweight tags have no tagger or message
+        #expect(lightweightTag.tagger == nil)
+        #expect(lightweightTag.message == nil)
     }
 
-    func testTagCreateLightweightPointingTree() throws {
-        // Create mock repository at the temporary directory
-        let repository = Repository.mock(named: "test-tag-create-lightweight-pointing-tree", in: Self.directory)
-
-        // Create mock commit
+    @Test("Create lightweight tag pointing to tree")
+    func createLightweightPointingTree() async throws {
+        let repository = mockRepository()
         let commit = try repository.mockCommit()
 
-        // Get the tree of the commit
+        // Get tree from commit
         let tree = try commit.tree
 
-        // Create a new tag
+        // Create lightweight tag pointing to tree
         let lightweightTag = try repository.tag.create(named: "v1.0.0", target: tree, type: .lightweight)
 
-        // Check the name of the tag
-        XCTAssertEqual(lightweightTag.name, "v1.0.0")
-        XCTAssertEqual(lightweightTag.fullName, "refs/tags/v1.0.0")
+        #expect(lightweightTag.name == "v1.0.0")
+        #expect(lightweightTag.fullName == "refs/tags/v1.0.0")
 
-        // Check if the tag id is the same as the tree id
-        XCTAssertEqual(lightweightTag.id, tree.id)
-        XCTAssertEqual(lightweightTag.id, lightweightTag.target.id)
+        // Tag ID matches tree ID
+        #expect(lightweightTag.id == tree.id)
+        #expect(lightweightTag.id == lightweightTag.target.id)
 
-        // Lightweight tag target is the tree
-        let lightweightTagTarget = try XCTUnwrap(lightweightTag.target as? Tree)
-        XCTAssertEqual(lightweightTagTarget, tree)
+        // Tag target is the tree
+        let lightweightTagTarget = try #require(lightweightTag.target as? Tree)
+        #expect(lightweightTagTarget == tree)
 
-        // Lightweight tag have no tagger and message
-        XCTAssertNil(lightweightTag.tagger)
-        XCTAssertNil(lightweightTag.message)
+        // Lightweight tags have no tagger or message
+        #expect(lightweightTag.tagger == nil)
+        #expect(lightweightTag.message == nil)
     }
 
-    func testTagCreateLightweightPointingBlob() throws {
-        // Create mock repository at the temporary directory
-        let repository = Repository.mock(named: "test-tag-create-lightweight-pointing-blob", in: Self.directory)
-
-        // Create mock commit
+    @Test("Create lightweight tag pointing to blob")
+    func createLightweightPointingBlob() async throws {
+        let repository = mockRepository()
         let commit = try repository.mockCommit()
 
-        // Get the first blob from the commit
+        // Get first blob from commit's tree
         let tree = try commit.tree
         let blob: Blob = tree.entries.compactMap {
             try? repository.show(id: $0.id)
         }.first!
 
-        // Create a new tag
+        // Create lightweight tag pointing to blob
         let lightweightTag = try repository.tag.create(named: "v1.0.0", target: blob, type: .lightweight)
 
-        // Check the name of the tag
-        XCTAssertEqual(lightweightTag.name, "v1.0.0")
-        XCTAssertEqual(lightweightTag.fullName, "refs/tags/v1.0.0")
+        #expect(lightweightTag.name == "v1.0.0")
+        #expect(lightweightTag.fullName == "refs/tags/v1.0.0")
 
-        // Check if the tag id is the same as the blob id
-        XCTAssertEqual(lightweightTag.id, blob.id)
-        XCTAssertEqual(lightweightTag.id, lightweightTag.target.id)
+        // Tag ID matches blob ID
+        #expect(lightweightTag.id == blob.id)
+        #expect(lightweightTag.id == lightweightTag.target.id)
 
-        // Lightweight tag target is the blob
-        let lightweightTagTarget = try XCTUnwrap(lightweightTag.target as? Blob)
-        XCTAssertEqual(lightweightTagTarget, blob)
+        // Tag target is the blob
+        let lightweightTagTarget = try #require(lightweightTag.target as? Blob)
+        #expect(lightweightTagTarget == blob)
 
-        // Lightweight tag have no tagger and message
-        XCTAssertNil(lightweightTag.tagger)
-        XCTAssertNil(lightweightTag.message)
+        // Lightweight tags have no tagger or message
+        #expect(lightweightTag.tagger == nil)
+        #expect(lightweightTag.message == nil)
     }
 
-    func testTagCreateLightweightPointingTag() throws {
-        // Create mock repository at the temporary directory
-        let repository = Repository.mock(named: "test-tag-create-lightweight-pointing-tag", in: Self.directory)
-
-        // Create mock commit
+    @Test("Create lightweight tag pointing to tag")
+    func createLightweightPointingTag() async throws {
+        let repository = mockRepository()
         let commit = try repository.mockCommit()
 
-        // Create a new tag
+        // Create an annotated tag first
         let annotatedTag = try repository.tag.create(named: "initial-tag", target: commit)
 
-        // Create a new tag
+        // Create lightweight tag pointing to the annotated tag
         let lightweightTag = try repository.tag.create(named: "v1.0.0", target: annotatedTag, type: .lightweight)
 
-        // Check the name of the tag
-        XCTAssertEqual(lightweightTag.name, "v1.0.0")
-        XCTAssertEqual(lightweightTag.fullName, "refs/tags/v1.0.0")
+        #expect(lightweightTag.name == "v1.0.0")
+        #expect(lightweightTag.fullName == "refs/tags/v1.0.0")
 
-        // Check if the tag id is the same as the blob id
-        XCTAssertEqual(lightweightTag.id, annotatedTag.id)
-        XCTAssertEqual(lightweightTag.id, lightweightTag.target.id)
+        // Tag ID matches annotated tag ID
+        #expect(lightweightTag.id == annotatedTag.id)
+        #expect(lightweightTag.id == lightweightTag.target.id)
 
-        // Lightweight tag target is the annotated tag
-        let lightweightTagTarget = try XCTUnwrap(lightweightTag.target as? Tag)
-        XCTAssertEqual(lightweightTagTarget, annotatedTag)
+        // Tag target is the annotated tag
+        let lightweightTagTarget = try #require(lightweightTag.target as? SwiftGitX.Tag)
+        #expect(lightweightTagTarget == annotatedTag)
 
-        // Lightweight tag have no tagger and message
-        XCTAssertNil(lightweightTag.tagger)
-        XCTAssertNil(lightweightTag.message)
+        // Lightweight tags have no tagger or message
+        #expect(lightweightTag.tagger == nil)
+        #expect(lightweightTag.message == nil)
     }
+}
+
+// MARK: - Tag Extensions
+
+extension Testing.Tag {
+    @Tag static var tag: Self
 }
