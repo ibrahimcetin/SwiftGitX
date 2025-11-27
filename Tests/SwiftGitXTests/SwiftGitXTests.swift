@@ -146,7 +146,7 @@ struct SwiftGitXRuntimeTests {
         //
         // We still throw an error because shutdown should not be called without initialize, even though
         // the error message is uninformative. This error can be ignored if needed.
-        #expect(error?.category == .none)
+        #expect(error?.category == SwiftGitXError.Category.none)
         #expect(error?.message == "no error")
     }
 
