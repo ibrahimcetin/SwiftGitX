@@ -5,270 +5,260 @@
 //  Created by İbrahim Çetin on 18.06.2024.
 //
 
+import Foundation
 import SwiftGitX
-import XCTest
+import Testing
 
-final class RepositoryOperationTests: SwiftGitXTestCase {
-    func testAdd() throws {
-        // Create a new repository at the temporary directory
-        let repository = Repository.mock(named: "test-add", in: Self.directory)
+// MARK: - Add
 
-        // Create a new file in the repository
-        let file = try repository.mockFile(named: "README.md")
+@Suite("Repository - Add", .tags(.repository, .operation, .add))
+final class RepositoryAddTests: SwiftGitXTest {
+    @Test("Add file to index")
+    func addFile() async throws {
+        let repository = mockRepository()
 
-        // Add the file to the index
+        // Create a file
+        let file = try repository.mockFile()
+
+        // Add to index
         try repository.add(file: file)
 
-        // Get status of the repository
+        // Verify status
         let status = try repository.status(file: file)
-
-        // Check if the file is added to the index
-        XCTAssertEqual(status, [.indexNew])
+        #expect(status == [.indexNew])
     }
+}
 
-    func testCommit() throws {
-        // Create a new repository at the temporary directory
-        let repository = Repository.mock(named: "test-commit", in: Self.directory)
+// MARK: - Commit
 
-        // Create a new file in the repository
-        let file = try repository.mockFile(named: "README.md")
+@Suite("Repository - Commit", .tags(.repository, .operation, .commit))
+final class RepositoryCommitTests: SwiftGitXTest {
+    @Test("Commit staged changes")
+    func commit() async throws {
+        let repository = mockRepository()
 
-        // Add the file to the index
+        // Create and stage a file
+        let file = try repository.mockFile()
         try repository.add(file: file)
 
-        // Commit the changes
+        // Commit
         let commit = try repository.commit(message: "Initial commit")
 
-        // Get the HEAD commit
-        let headCommit = try XCTUnwrap(repository.HEAD.target as? Commit)
-
-        // Check if the HEAD commit is the same as the created commit
-        XCTAssertEqual(commit, headCommit)
+        // Verify HEAD points to commit
+        let headCommit = try #require(repository.HEAD.target as? Commit)
+        #expect(commit == headCommit)
     }
 
-    func testEmptyCommit() throws {
-        // Create a new repository at the temporary directory
-        let repository = Repository.mock(named: "test-empty-commit", in: Self.directory)
-
-        // Create initial commit
-        try repository.mockCommit(message: "Initial commit")
-
-        // Verify that committing with no changes fails by default
-        XCTAssertThrowsError(try repository.commit(message: "Empty commit without option")) { error in
-            XCTAssertTrue(error is SwiftGitXError)
-            let error = error as? SwiftGitXError
-
-            XCTAssertEqual(error?.code, .unchanged)
-            XCTAssertEqual(error?.category, .repository)
-            XCTAssertEqual(error?.message, "no changes are staged for commit")
-        }
-
-        // Verify that committing with allowEmpty option succeeds
-        let emptyCommit = try repository.commit(message: "Empty commit with option", options: .allowEmpty)
-
-        // Get the HEAD commit
-        let headCommit = try XCTUnwrap(repository.HEAD.target as? Commit)
-
-        // Check if the HEAD commit is the same as the created empty commit
-        XCTAssertEqual(emptyCommit, headCommit)
-
-        // Verify the commit message
-        XCTAssertEqual(emptyCommit.message, "Empty commit with option")
-    }
-
-    func testReset() throws {
-        // Create a new repository at the temporary directory
-        let repository = Repository.mock(named: "test-reset", in: Self.directory)
-
-        let initialCommit = try repository.mockCommit()
-
-        // Create a new file in the repository
-        let file = try repository.mockFile(named: "ResetMe.md")
-
-        // Add the file to the index
-        try repository.add(file: file)
-
-        // Reset the staged changes
-        try repository.reset(from: initialCommit, files: [file])
-
-        // Get the status of the file
-        let status = try repository.status(file: file)
-
-        // Check if the file is reset
-        XCTAssertEqual(status, [.workingTreeNew])
-    }
-
-    func testResetSoft() throws {
-        // Create a new repository at the temporary directory
-        let repository = Repository.mock(named: "test-reset-soft", in: Self.directory)
-
-        // Create mock commit
-        let initialCommit = try repository.mockCommit()
-
-        // Create a oops commit
-        try repository.mockCommit(
-            message: "Oops!",
-            file: repository.mockFile(named: "Undefined", content: "Reset me!")
-        )
-
-        // Reset the repository to the previous commit
-        try repository.reset(to: initialCommit)
-
-        // Get the HEAD commit
-        let headCommit = try XCTUnwrap(repository.HEAD.target as? Commit)
-
-        // Check if the HEAD commit is the same as the previous commit
-        XCTAssertEqual(headCommit, initialCommit)
-    }
-
-    func testRestoreWorkingTree() throws {
-        // Create a new repository at the temporary directory
-        let repository = Repository.mock(named: "test-restore-working-tree", in: Self.directory)
-
-        // Create a new file
-        let fileToRestore = try repository.mockFile(named: "WorkingTree.md", content: "Hello, World!")
-
-        // Commit the file
-        try repository.mockCommit(message: "Initial commit", file: fileToRestore)
-
-        // Modify the file
-        try Data("Restore me!".utf8).write(to: fileToRestore)
-
-        // Create a new file to stage (this should not be restored)
-        let fileToStage = try repository.mockFile(named: "Stage.md", content: "Stage me!")
-
-        // Stage the file
-        try repository.add(file: fileToStage)
-
-        // Restore the file to the head commit
-        try repository.restore(paths: ["WorkingTree.md", "Stage.md"])
-
-        // Check if the file content is the same as the head commit
-        let restoredFileContent = try String(contentsOf: fileToRestore)
-
-        XCTAssertEqual(restoredFileContent, "Hello, World!")
-        XCTAssertTrue(FileManager.default.fileExists(atPath: fileToStage.path))
-    }
-
-    func testRestoreStage() throws {
-        // Create a new repository at the temporary directory
-        let repository = Repository.mock(named: "test-restore-stage", in: Self.directory)
-
-        // Create a new file
-        let workingTreeFile = try repository.mockFile(named: "WorkingTree.md", content: "Hello, World!")
-
-        // Commit the file
-        try repository.mockCommit(message: "Initial commit", file: workingTreeFile)
-
-        // Modify the file (this should not be restored)
-        try Data("Should not be restored!".utf8).write(to: workingTreeFile)
-
-        // Create a new file to stage
-        let stagedFile = try repository.mockFile(named: "Stage.md", content: "Stage me!")
-
-        // Stage the file
-        try repository.add(file: stagedFile)
-
-        // Restore the staged file
-        try repository.restore(.staged, paths: ["WorkingTree.md", "Stage.md"])
-
-        // Check the status of the staged file and content
-        let stagedFileStatus = try repository.status(file: stagedFile)
-        XCTAssertEqual(stagedFileStatus, [.workingTreeNew])
-        XCTAssertEqual(try String(contentsOf: stagedFile), "Stage me!")
-
-        // Check the status of the working tree file and content
-        let workingTreeFileStatus = try repository.status(file: workingTreeFile)
-        XCTAssertEqual(workingTreeFileStatus, [.workingTreeModified])
-        XCTAssertTrue(FileManager.default.fileExists(atPath: workingTreeFile.path))
-        XCTAssertEqual(try String(contentsOf: workingTreeFile), "Should not be restored!")
-    }
-
-    func testRestoreWorkingTreeAndStage() throws {
-        // Create a new repository at the temporary directory
-        let repository = Repository.mock(named: "test-restore-working-tree-stage", in: Self.directory)
-
-        // Create a mock commit
+    @Test("Empty commit without option throws error", .tags(.error))
+    func emptyCommitThrows() async throws {
+        let repository = mockRepository()
         try repository.mockCommit()
 
-        // Modify the file which is created in mockCommit
-        let file = try repository.mockFile(named: "README.md", content: "Restore stage area!")
+        // Committing with no changes should fail
+        let error = #expect(throws: SwiftGitXError.self) {
+            try repository.commit(message: "Empty commit without option")
+        }
 
-        // Add the file to the index
+        #expect(error?.code == .unchanged)
+        #expect(error?.category == .repository)
+        #expect(error?.message == "no changes are staged for commit")
+    }
+
+    @Test("Empty commit with allowEmpty option succeeds")
+    func emptyCommitWithOption() async throws {
+        let repository = mockRepository()
+        try repository.mockCommit()
+
+        // Commit with allowEmpty option
+        let emptyCommit = try repository.commit(message: "Empty commit with option", options: .allowEmpty)
+
+        // Verify HEAD points to empty commit
+        let headCommit = try #require(repository.HEAD.target as? Commit)
+        #expect(emptyCommit == headCommit)
+        #expect(emptyCommit.message == "Empty commit with option")
+    }
+}
+
+// MARK: - Reset
+
+@Suite("Repository - Reset", .tags(.repository, .operation, .reset))
+final class RepositoryResetTests: SwiftGitXTest {
+    @Test("Reset staged file")
+    func resetStagedFile() async throws {
+        let repository = mockRepository()
+        let initialCommit = try repository.mockCommit()
+
+        // Create and stage a file
+        let file = try repository.mockFile()
         try repository.add(file: file)
 
-        // Modify the file
+        #expect(try repository.status(file: file) == [.indexNew])
+
+        // Reset the staged file
+        try repository.reset(from: initialCommit, files: [file])
+
+        // File should be untracked now
+        let status = try repository.status(file: file)
+        #expect(status == [.workingTreeNew])
+    }
+
+    @Test("Soft reset to previous commit")
+    func resetSoft() async throws {
+        let repository = mockRepository()
+        let initialCommit = try repository.mockCommit()
+
+        // Create another commit
+        try repository.mockCommit()
+
+        // Reset to initial commit
+        try repository.reset(to: initialCommit)
+
+        // HEAD should point to initial commit
+        let headCommit = try #require(repository.HEAD.target as? Commit)
+        #expect(headCommit == initialCommit)
+    }
+}
+
+// MARK: - Restore
+
+@Suite("Repository - Restore", .tags(.repository, .operation, .restore))
+final class RepositoryRestoreTests: SwiftGitXTest {
+    @Test("Restore working tree file")
+    func restoreWorkingTree() async throws {
+        let repository = mockRepository()
+
+        // Create and commit a file
+        let file1 = try repository.mockFile()
+        try repository.mockCommit(file: file1)
+
+        // Modify the file (working tree change)
+        try Data("Restore me!".utf8).write(to: file1)
+
+        // Create and stage another file (should not be restored)
+        let file2 = try repository.mockFile()
+        try repository.add(file: file2)
+
+        // Restore
+        try repository.restore(files: [file1, file2])
+
+        // Verify file content is restored
+        let restoredContent = try String(contentsOf: file1)
+        #expect(restoredContent == "File 1 content\n")
+
+        // Verify file2 is still staged
+        #expect(FileManager.default.fileExists(atPath: file2.path))
+        #expect(try repository.status(file: file2) == [.indexNew])
+    }
+
+    @Test("Restore staged file")
+    func restoreStaged() async throws {
+        let repository = mockRepository()
+
+        // Create and commit a file
+        let workingTreeFile = try repository.mockFile(named: "WorkingTree.md", content: "Hello, World!")
+        try repository.mockCommit(file: workingTreeFile)
+
+        // Modify the file (should not be restored)
+        try Data("Should not be restored!".utf8).write(to: workingTreeFile)
+
+        // Create and stage another file
+        let stagedFile = try repository.mockFile(named: "Stage.md", content: "Stage me!")
+        try repository.add(file: stagedFile)
+
+        // Restore staged only
+        try repository.restore(.staged, paths: ["WorkingTree.md", "Stage.md"])
+
+        // Staged file should be unstaged
+        let stagedFileStatus = try repository.status(file: stagedFile)
+        #expect(stagedFileStatus == [.workingTreeNew])
+        #expect(try String(contentsOf: stagedFile) == "Stage me!")
+
+        // Working tree file should still be modified
+        let workingTreeFileStatus = try repository.status(file: workingTreeFile)
+        #expect(workingTreeFileStatus == [.workingTreeModified])
+        #expect(try String(contentsOf: workingTreeFile) == "Should not be restored!")
+    }
+
+    @Test("Restore both working tree and staged")
+    func restoreWorkingTreeAndStaged() async throws {
+        let repository = mockRepository()
+        try repository.mockCommit()
+
+        // Modify file from mockCommit and stage it
+        let file = try repository.mockFile(named: "file-1.txt", content: "Restore stage area!")
+        try repository.add(file: file)
+
+        // Modify again (working tree change)
         try Data("Restore working tree!".utf8).write(to: file)
 
-        // Restore the working tree and stage
+        // Restore both
         try repository.restore([.workingTree, .staged], files: [file])
 
-        // Check the status of the file and the content
-        let stagedFileStatus = try repository.status(file: file)
-        XCTAssertTrue(stagedFileStatus.isEmpty)  // There should be no changes (all changes are restored)
-        XCTAssertEqual(try String(contentsOf: file), "Welcome to SwiftGitX!\n")
+        // File should have no changes
+        let status = try repository.status(file: file)
+        #expect(status.isEmpty)
+        #expect(try String(contentsOf: file) == "File 1 content\n")
+    }
 
-        // Create a new file to delete (this should be deleted)
+    @Test("Restore deletes untracked staged file")
+    func restoreDeletesUntrackedStagedFile() async throws {
+        let repository = mockRepository()
+        try repository.mockCommit()
+
+        // Create and stage a new file
         let fileToDelete = try repository.mockFile(named: "DeleteMe.md", content: "Delete me from stage area!")
-
-        // Add the file to the index
         try repository.add(file: fileToDelete)
 
-        // Modify the file
+        // Modify it
         try Data("Delete me from working tree!".utf8).write(to: fileToDelete)
 
-        // Restore the working tree and stage
+        // Restore both working tree and staged
         try repository.restore([.workingTree, .staged], files: [fileToDelete])
 
         // File should be deleted
-        XCTAssertFalse(FileManager.default.fileExists(atPath: fileToDelete.path))
+        #expect(FileManager.default.fileExists(atPath: fileToDelete.path) == false)
     }
+}
 
-    func testRepositoryLog() async throws {
-        // Create a new repository at the temporary directory
-        let repository = Repository.mock(named: "test-log", in: Self.directory)
+// MARK: - Log
 
-        var createdCommits = [Commit]()
-        for index in 0..<10 {
-            // Create a commit
-            let commit = try repository.mockCommit(
-                message: "Commit \(index)",
-                file: repository.mockFile(named: "README-\(index).md")
-            )
+@Suite("Repository - Log", .tags(.repository, .operation, .log))
+final class RepositoryLogTests: SwiftGitXTest {
+    @Test("Log returns commits in order")
+    func log() async throws {
+        let repository = mockRepository()
 
-            createdCommits.append(commit)
-        }
+        // Create multiple commits
+        let commits = try (0..<10).map { _ in try repository.mockCommit() }
 
-        // Get the log of the repository
+        // Get log with reverse sorting
         let commitSequence = try repository.log(from: repository.HEAD, sorting: .reverse)
         let logCommits = Array(commitSequence)
-
-        // Check if the commits are the same
-        XCTAssertEqual(logCommits, createdCommits)
+        #expect(logCommits == commits)
     }
+}
 
-    func testRevert() throws {
-        // Create a new repository at the temporary directory
-        let repository = Repository.mock(named: "test-revert", in: Self.directory)
+// MARK: - Revert
 
-        let file = try repository.mockFile(named: "README.md", content: "Hello, World!")
+@Suite("Repository - Revert", .tags(.repository, .operation, .revert))
+final class RepositoryRevertTests: SwiftGitXTest {
+    @Test("Revert commit")
+    func revert() async throws {
+        let repository = mockRepository()
 
-        // Create initial commit
-        try repository.mockCommit(message: "Initial commit", file: file)
+        // Create initial commit with file
+        let file1 = try repository.mockFile()
+        try repository.mockCommit(file: file1)
 
-        // Modify the file
-        try Data("Revert me!".utf8).write(to: file)
+        // Modify and commit
+        try Data("Revert me!".utf8).write(to: file1)
+        let commitToRevert = try repository.mockCommit(file: file1)
 
-        // Create a new commit
-        let commitToRevert = try repository.mockCommit(message: "Second commit", file: file)
-
-        // Revert the commit
+        // Revert
         try repository.revert(commitToRevert)
 
-        // Check the status of the file
-        XCTAssertEqual(try repository.status(file: file), [.indexModified])
-
-        // Check the content of the file
-        XCTAssertEqual(try String(contentsOf: file), "Hello, World!")
+        // File should be staged with original content
+        #expect(try repository.status(file: file1) == [.indexModified])
+        #expect(try String(contentsOf: file1) == "File 1 content\n")
     }
 }
