@@ -29,4 +29,5 @@ extension Testing.Tag {
 
     // Models
     @Tag static var signature: Self
+    @Tag static var oid: Self
 }
