@@ -494,11 +494,11 @@ final class IndexMixedOperationsTests: SwiftGitXTest {
         #expect(statusEntries.count == 2)
 
         // file1 should be staged for deletion
-        let file1Status = statusEntries.first(where: { $0.index!.newFile.path == "file-1.txt" })
+        let file1Status = statusEntries.first(where: { $0.index?.newFile.path == "file-1.txt" })
         #expect(file1Status?.status == [.indexDeleted])
 
         // file3 should be new in index
-        let file3Status = statusEntries.first(where: { $0.index!.newFile.path == "file-3.txt" })
+        let file3Status = statusEntries.first(where: { $0.index?.newFile.path == "file-3.txt" })
         #expect(file3Status?.status == [.indexNew])
     }
 
