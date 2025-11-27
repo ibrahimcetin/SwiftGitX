@@ -1,31 +1,33 @@
+import Foundation
 import SwiftGitX
-import XCTest
+import Testing
 
-final class RepositorySwitchTests: SwiftGitXTestCase {
-    func testRepositorySwitchBranch() throws {
+@Suite("Repository - Switch", .tags(.repository, .operation, .switch))
+final class RepositorySwitchTests: SwiftGitXTest {
+    @Test("Switch to Branch")
+    func switchBranch() throws {
         // Create a new repository at the temporary directory
-        let repository = Repository.mock(named: "test-switch-branch", in: Self.directory)
-
-        // Create mock commit
+        let repository = mockRepository()
         let commit = try repository.mockCommit()
 
         // Create a new branch
         let branch = try repository.branch.create(named: "feature", target: commit)
 
         // Switch the new branch
-        XCTAssertNoThrow(try repository.switch(to: branch))
+        try repository.switch(to: branch)
 
         // Get the HEAD reference
         let head = try repository.HEAD
 
         // Check the HEAD reference
-        XCTAssertEqual(head.name, branch.name)
-        XCTAssertEqual(head.fullName, branch.fullName)
+        #expect(head.name == branch.name)
+        #expect(head.fullName == branch.fullName)
     }
 
-    func testRepositorySwitchBranchGuess() async throws {
+    @Test("Switch to Remote Branch (Fresh Clone)")
+    func switchBranchGuess() async throws {
         let source = URL(string: "https://github.com/ibrahimcetin/PassbankMD.git")!
-        let repositoryDirectory = Repository.mockDirectory(named: "test-switch-branch-guess", in: Self.directory)
+        let repositoryDirectory = mockDirectory()
         let repository = try await Repository.clone(from: source, to: repositoryDirectory)
 
         // Switch to the branch
@@ -36,89 +38,87 @@ final class RepositorySwitchTests: SwiftGitXTestCase {
         let head = try repository.HEAD
 
         // Check the HEAD reference
-        XCTAssertEqual(head.name, remoteBranch.name.replacingOccurrences(of: "origin/", with: ""))
-        XCTAssertEqual(head.target as? Commit, remoteBranch.target as? Commit)
+        #expect(head.name == remoteBranch.name.replacing("origin/", with: ""))
+        #expect(head.target as? Commit == remoteBranch.target as? Commit)
     }
 
-    func testRepositorySwitchCommit() throws {
+    @Test("Switch to Commit")
+    func switchCommit() throws {
         // Create a new repository at the temporary directory
-        let repository = Repository.mock(named: "test-switch-commit", in: Self.directory)
-
-        // Create mock commit
+        let repository = mockRepository()
         let commit = try repository.mockCommit()
 
         // Switch to the commit
-        XCTAssertNoThrow(try repository.switch(to: commit))
+        try repository.switch(to: commit)
 
         // Get the HEAD reference
         let head = try repository.HEAD
 
         // Check the HEAD reference (detached HEAD)
-        XCTAssertTrue(repository.isHEADDetached)
+        #expect(repository.isHEADDetached)
 
-        XCTAssertEqual(head.name, "HEAD")
-        XCTAssertEqual(head.fullName, "HEAD")
+        #expect(head.name == "HEAD")
+        #expect(head.fullName == "HEAD")
     }
 
-    func testRepositorySwitchTagAnnotated() throws {
+    @Test("Switch to Annotated Tag")
+    func switchTagAnnotated() throws {
         // Create a new repository at the temporary directory
-        let repository = Repository.mock(named: "test-switch-tag-annotated", in: Self.directory)
-
-        // Create mock commit
+        let repository = mockRepository()
         let commit = try repository.mockCommit()
 
         // Create a new tag
         let tag = try repository.tag.create(named: "v1.0.0", target: commit)
 
         // Switch to the tag
-        XCTAssertNoThrow(try repository.switch(to: tag))
+        try repository.switch(to: tag)
 
         // Get the HEAD reference
         let head = try repository.HEAD
 
         // Check the HEAD reference
-        XCTAssertEqual(head.name, tag.name)
-        XCTAssertEqual(head.fullName, tag.fullName)
+        #expect(head.name == tag.name)
+        #expect(head.fullName == tag.fullName)
     }
 
-    func testRepositorySwitchTagLightweight() throws {
+    @Test("Switch to Lightweight Tag")
+    func switchTagLightweight() throws {
         // Create a new repository at the temporary directory
-        let repository = Repository.mock(named: "test-switch-tag-lightweight", in: Self.directory)
-
-        // Create mock commit
+        let repository = mockRepository()
         let commit = try repository.mockCommit()
 
         // Create a new tag
         let tag = try repository.tag.create(named: "v1.0.0", target: commit, type: .lightweight)
 
         // When a lightweight tag is created, the tag ID is the same as the commit ID
-        XCTAssertEqual(tag.id, commit.id)
+        #expect(tag.id == commit.id)
 
         // Switch to the tag
-        XCTAssertNoThrow(try repository.switch(to: tag))
+        try repository.switch(to: tag)
 
         // Get the HEAD reference
         let head = try repository.HEAD
 
         // Check the HEAD reference
-        XCTAssertEqual(head.target.id, tag.id)
+        #expect(head.target.id == tag.id)
 
-        XCTAssertEqual(head.name, tag.name)
-        XCTAssertEqual(head.fullName, tag.fullName)
+        #expect(head.name == tag.name)
+        #expect(head.fullName == tag.fullName)
     }
 
-    func testRepositorySwitchTagLightweightTreeFailure() throws {
+    @Test("Switch to Lightweight Tag Tree Should Fail")
+    func switchTagLightweightTreeFailure() throws {
         // Create a new repository at the temporary directory
-        let repository = Repository.mock(named: "test-switch-tag-lightweight-tree-failure", in: Self.directory)
-
-        // Create mock commit
+        let repository = mockRepository()
         let commit = try repository.mockCommit()
 
         // Create a new tag
         let tag = try repository.tag.create(named: "v1.0.0", target: commit.tree, type: .lightweight)
 
         // Switch to the tag
-        XCTAssertThrowsError(try repository.switch(to: tag))
+        #expect(throws: Error.self) {
+            try repository.switch(to: tag)
+        }
     }
 
     // TODO: Add test for remote branch checkout
