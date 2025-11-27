@@ -16,6 +16,42 @@ public struct Signature: Equatable, Hashable {
     /// The timezone of the author.
     public let timezone: TimeZone
 
+    /// Initializes a new signature.
+    ///
+    /// - Parameters:
+    ///   - name: The full name of the author.
+    ///   - email: The email of the author.
+    ///   - date: The date of the action. Defaults to the current date.
+    ///   - timezone: The timezone of the author. Defaults to the system timezone.
+    ///
+    /// If `date` and `timezone` are not provided, the current date and system timezone are used.
+    public init(name: String, email: String, date: Date = Date(), timezone: TimeZone = .current) {
+        self.name = name
+        self.email = email
+        self.date = date
+        self.timezone = timezone
+    }
+}
+
+extension Signature {
+    var raw: git_signature {
+        get throws(SwiftGitXError) {
+            let signaturePointer = try git(operation: .signature) {
+                var pointer: UnsafeMutablePointer<git_signature>?
+                let status = git_signature_new(
+                    &pointer,
+                    name,
+                    email,
+                    git_time_t(date.timeIntervalSince1970),
+                    Int32(timezone.secondsFromGMT() / 60)
+                )
+                return (pointer, status)
+            }
+
+            return signaturePointer.pointee
+        }
+    }
+
     init(raw: git_signature) {
         name = String(cString: raw.name)
         email = String(cString: raw.email)
@@ -25,8 +61,17 @@ public struct Signature: Equatable, Hashable {
 }
 
 extension Signature {
-    public static func `default`(in repositoryPointer: OpaquePointer) throws(SwiftGitXError) -> Signature {
-        let signaturePointer = try git {
+    /// Returns the default signature for the repository.
+    ///
+    /// - Parameter repository: The repository to get the default signature for.
+    ///
+    /// - Returns: The default signature for the repository.
+    public static func `default`(in repository: Repository) throws(SwiftGitXError) -> Signature {
+        try `default`(in: repository.pointer)
+    }
+
+    internal static func `default`(in repositoryPointer: OpaquePointer) throws(SwiftGitXError) -> Signature {
+        let signaturePointer = try git(operation: .signature) {
             var signaturePointer: UnsafeMutablePointer<git_signature>?
             let status = git_signature_default(&signaturePointer, repositoryPointer)
             return (signaturePointer, status)
@@ -35,4 +80,8 @@ extension Signature {
 
         return Signature(raw: signaturePointer.pointee)
     }
+}
+
+extension SwiftGitXError.Operation {
+    public static let signature = Self(rawValue: "signature")
 }
