@@ -560,9 +560,3 @@ final class IndexMixedOperationsTests: SwiftGitXTest {
         #expect(unstagedFiles.count == 2)
     }
 }
-
-// MARK: - Tag Extensions
-
-extension Testing.Tag {
-    @Tag static var index: Self
-}

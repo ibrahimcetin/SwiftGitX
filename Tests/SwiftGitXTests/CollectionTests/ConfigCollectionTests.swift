@@ -73,9 +73,3 @@ final class ConfigCollectionTests: SwiftGitXTest {
         #expect(try repository.config.defaultBranchName == "main")
     }
 }
-
-// MARK: - Tag Extensions
-
-extension Testing.Tag {
-    @Tag static var config: Self
-}

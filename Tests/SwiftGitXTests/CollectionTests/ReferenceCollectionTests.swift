@@ -228,9 +228,3 @@ final class ReferenceCollectionTests: SwiftGitXTest {
         }
     }
 }
-
-// MARK: - Tag Extensions
-
-extension Testing.Tag {
-    @Tag static var reference: Self
-}

@@ -493,12 +493,3 @@ final class BranchCollectionErrorTests: SwiftGitXTest {
         }
     }
 }
-
-// MARK: - Tag Extensions
-
-extension Testing.Tag {
-    @Tag static var branch: Self
-    @Tag static var collection: Self
-    @Tag static var remote: Self
-    @Tag static var error: Self
-}

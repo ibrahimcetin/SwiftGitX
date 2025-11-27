@@ -370,9 +370,3 @@ final class TagCreateTests: SwiftGitXTest {
         }
     }
 }
-
-// MARK: - Tag Extensions
-
-extension Testing.Tag {
-    @Tag static var tag: Self
-}

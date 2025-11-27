@@ -314,10 +314,3 @@ final class SignatureRawTests: SwiftGitXTest {
         #expect(tagger.date == Date(timeIntervalSince1970: 1_700_000_000))
     }
 }
-
-// MARK: - Tag Extensions
-
-extension Testing.Tag {
-    @Tag static var signature: Self
-    @Tag static var model: Self
-}
