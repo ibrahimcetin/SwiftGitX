@@ -25,7 +25,7 @@ public struct Remote: Equatable, Hashable, Sendable {
     }
 
     /// The opaque pointer to the repository.
-    private let repositoryPointer: OpaquePointer
+    nonisolated(unsafe) private let repositoryPointer: OpaquePointer
 
     /// Initializes a `Remote` instance with the given opaque pointer.
     ///

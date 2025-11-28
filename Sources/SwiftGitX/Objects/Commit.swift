@@ -91,7 +91,7 @@ public struct Commit: Object, Sendable {
     public let type: ObjectType = .commit
 
     // This is necessary to get parents of the commit.
-    private let repositoryPointer: OpaquePointer
+    nonisolated(unsafe) private let repositoryPointer: OpaquePointer
 
     init(pointer: OpaquePointer) throws(SwiftGitXError) {
         let id = git_commit_id(pointer)?.pointee
