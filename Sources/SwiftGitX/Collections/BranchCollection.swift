@@ -8,7 +8,7 @@
 import libgit2
 
 /// A collection of branches and their operations.
-public struct BranchCollection: Sequence {
+public struct BranchCollection: Sequence, Sendable {
     private let repositoryPointer: OpaquePointer
 
     init(repositoryPointer: OpaquePointer) {

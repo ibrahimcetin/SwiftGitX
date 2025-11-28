@@ -154,7 +154,7 @@ extension Diff {
 
 extension Diff {
     // Represents git_diff_flag_t enum in libgit2
-    public enum Flag {
+    public enum Flag: Sendable {
         /// The file is binary.
         case binary
 
@@ -201,7 +201,7 @@ extension Diff {
 extension Diff {
     // Represents git_delta_t enum in libgit2
     /// Represents what type of change is described by ``Delta``.
-    public enum DeltaType: Int {
+    public enum DeltaType: Int, Sendable {
         /// No changes
         case unmodified = 0
 
@@ -236,3 +236,7 @@ extension Diff {
         case conflicted
     }
 }
+
+extension git_diff_delta: @unchecked @retroactive Sendable {}
+
+extension git_diff_file: @unchecked @retroactive Sendable {}

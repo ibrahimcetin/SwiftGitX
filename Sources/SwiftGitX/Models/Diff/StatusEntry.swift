@@ -2,7 +2,7 @@ import libgit2
 
 // ? Can we use LibGit2RawRepresentable here?
 /// Represents the status of a file in the repository.
-public struct StatusEntry: Equatable, Hashable {
+public struct StatusEntry: Equatable, Hashable, Sendable {
     /// The status of the file.
     ///
     /// This is an array of ``Status-swift.enum`` cases because a file can have multiple statuses.
@@ -41,7 +41,7 @@ public struct StatusEntry: Equatable, Hashable {
     ///
     /// This enumeration provides a detailed status of files in a Git repository. Each case corresponds to a specific
     /// status that a file can have in the repository, similar to the output of the `git status` command.
-    public enum Status {
+    public enum Status: Sendable {
         /// The file is `tracked` and its content has no changes.
         case current
 

@@ -15,7 +15,7 @@ import libgit2
 /// Trees are used to represent the contents of a directory. They are also used to represent the contents of a commit.
 ///
 /// Trees are similar to directories in a filesystem, but they are stored as a single file in the Git repository.
-public struct Tree: Object {
+public struct Tree: Object, Sendable {
     /// The id of the tree.
     public let id: OID
 
@@ -58,7 +58,7 @@ public struct Tree: Object {
 extension Tree {
     // ? Should we conform to Object?
     /// Represents an entry in a Git tree object.
-    public struct Entry: Identifiable, Equatable, Hashable {
+    public struct Entry: Identifiable, Equatable, Hashable, Sendable {
         /// The OID of the object pointed to by the entry
         public let id: OID
 

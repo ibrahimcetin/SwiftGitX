@@ -9,7 +9,7 @@ import Foundation
 import libgit2
 
 /// A commit object representation in the repository.
-public struct Commit: Object {
+public struct Commit: Object, Sendable {
     /// The id of the commit.
     public let id: OID
 

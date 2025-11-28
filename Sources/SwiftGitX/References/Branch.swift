@@ -8,7 +8,7 @@
 import libgit2
 
 /// A branch representation in the repository.
-public struct Branch: Reference {
+public struct Branch: Reference, Sendable {
     /// The target of the branch.
     public let target: any Object
 

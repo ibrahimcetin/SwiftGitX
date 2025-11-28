@@ -1,7 +1,7 @@
 import libgit2
 
 /// Options for the commit operation.
-public struct CommitOptions {
+public struct CommitOptions: Sendable {
     public static let `default` = CommitOptions()
 
     public static let allowEmpty = CommitOptions(allowEmpty: true)

@@ -8,7 +8,7 @@
 import libgit2
 
 /// A collection of references and their operations.
-public struct ReferenceCollection: Sequence {
+public struct ReferenceCollection: Sequence, Sendable {
     private let repositoryPointer: OpaquePointer
 
     init(repositoryPointer: OpaquePointer) {

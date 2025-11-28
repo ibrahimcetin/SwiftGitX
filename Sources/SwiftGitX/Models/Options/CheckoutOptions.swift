@@ -1,7 +1,7 @@
 import libgit2
 
 // Only internal usage for now
-struct CheckoutOptions {
+struct CheckoutOptions: Sendable {
     /// The checkout strategy to use. Default is `.safe`.
     let strategy: CheckoutStrategy
 

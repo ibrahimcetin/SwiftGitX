@@ -3,7 +3,7 @@ import libgit2
 
 // ? Can we use LibGit2RawRepresentable here?
 /// A signature representation in the repository.
-public struct Signature: Equatable, Hashable {
+public struct Signature: Equatable, Hashable, Sendable {
     /// The full name of the author.
     public let name: String
 

@@ -5,7 +5,7 @@ import libgit2
 ///
 /// It contains a sequence of hunks, each of which represents a contiguous section of the file.
 /// Each hunk contains a header and a sequence of lines. Each line represents a change in the file.
-public struct Patch: Equatable, Hashable {
+public struct Patch: Equatable, Hashable, Sendable {
     /// The delta associated with the patch.
     public let delta: Diff.Delta
 
@@ -58,7 +58,7 @@ public struct Patch: Equatable, Hashable {
     ///
     /// It contains a header and a sequence of lines.
     /// Each line represents a change in the file.
-    public struct Hunk: Equatable, Hashable {
+    public struct Hunk: Equatable, Hashable, Sendable {
         /// The header of the hunk.
         public let header: String
 
@@ -95,7 +95,7 @@ public struct Patch: Equatable, Hashable {
         }
 
         /// A line represents a change in a file.
-        public struct Line: Equatable, Hashable {
+        public struct Line: Equatable, Hashable, Sendable {
             /// The type of the line in the hunk.
             ///
             /// - SeeAlso:  For details ``SwiftGitX/Patch/Hunk/LineType``
@@ -136,7 +136,7 @@ public struct Patch: Equatable, Hashable {
         ///
         /// If the line has no newline character at the end,
         /// it can be a context EOF, an addition EOF, or a deletion EOF.
-        public enum LineType: String {
+        public enum LineType: String, Sendable {
             case context = " "
             case addition = "+"
             case deletion = "-"

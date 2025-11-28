@@ -73,7 +73,7 @@ func git<T>(
 /// - A ``code`` indicating what went wrong
 /// - A ``category`` identifying where the error originated
 /// - A human-readable ``message`` describing the error
-public struct SwiftGitXError: Error {
+public struct SwiftGitXError: Error, Sendable {
     /// The error code indicating what went wrong.
     public let code: Code
 
@@ -183,7 +183,7 @@ extension SwiftGitXError {
     ///
     /// - Note: This is distinct from ``Category``, which provides additional context about
     /// where the error originated (e.g., network, filesystem, repository).
-    public enum Code: Int {
+    public enum Code: Int, Sendable {
         /// No error occurred; the call was successful.
         case ok = 0
 
@@ -301,7 +301,7 @@ extension SwiftGitXError {
     /// This enum directly reflects libgit2's `git_error_t` enumeration.
     /// Error categories are obtained by calling `git_error_last` to get additional
     /// context about the error beyond the error code returned by the operation.
-    public enum Category: Int {
+    public enum Category: Int, Sendable {
         /// No error.
         case none = 0
 
@@ -414,7 +414,7 @@ extension SwiftGitXError {
         case grafts = 36
     }
 
-    public struct Operation: RawRepresentable {
+    public struct Operation: RawRepresentable, Sendable {
         public static let config = Operation(rawValue: "config")
         public static let clone = Operation(rawValue: "clone")
         public static let checkout = Operation(rawValue: "checkout")

@@ -9,7 +9,7 @@ import Foundation
 import libgit2
 
 /// A remote representation in the repository.
-public struct Remote: Equatable, Hashable {
+public struct Remote: Equatable, Hashable, Sendable {
     /// The name of the remote.
     public let name: String
 
