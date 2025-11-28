@@ -13,10 +13,10 @@ public enum SwiftGitXRuntime {
     ///
     /// - Returns: the number of initializations of the library.
     ///
-    /// This function must be called before any other libgit2 function in order to set up global state and threading.
+    /// - Important: SwiftGitX calls this automatically to set up libgit2 global state, so you don't need to call it manually.
     ///
-    /// This function may be called multiple times. It will return the number of times the initialization has been
-    /// called (including this one) that have not subsequently been shutdown.
+    /// The function may still be called manually if needed, and it will return the number of active initializations
+    /// (including this one) that have not subsequently been shutdown.
     @discardableResult
     public static func initialize() throws(SwiftGitXError) -> Int {
         // Initialize the libgit2 library
@@ -31,8 +31,10 @@ public enum SwiftGitXRuntime {
     ///
     /// - Returns: the number of shutdowns of the library.
     ///
+    /// - Important: SwiftGitX handles shutdown automatically when its lifecycle ends, so you don't need to call it manually.
+    ///
     /// Clean up the global state and threading context after calling it as many times as ``initialize()`` was called.
-    /// It will return the number of remaining initializations that have not been shutdown (after this one).
+    /// It will return the number of remaining initializations that have not been shutdown (after this call).
     @discardableResult
     public static func shutdown() throws(SwiftGitXError) -> Int {
         // Shutdown the libgit2 library
