@@ -77,7 +77,7 @@ extension Diff {
         public let numberOfFiles: Int
 
         // Represents git_diff_file in libgit2.
-        let raw: git_diff_delta
+        nonisolated(unsafe) let raw: git_diff_delta
 
         init(raw: git_diff_delta) {
             type = DeltaType(rawValue: Int(raw.status.rawValue))!
@@ -123,7 +123,7 @@ extension Diff {
         /// The mode of the file.
         public let mode: FileMode
 
-        let raw: git_diff_file
+        nonisolated(unsafe) let raw: git_diff_file
 
         init(raw: git_diff_file) {
             id = OID(raw: raw.id)
@@ -236,7 +236,3 @@ extension Diff {
         case conflicted
     }
 }
-
-extension git_diff_delta: @unchecked @retroactive Sendable {}
-
-extension git_diff_file: @unchecked @retroactive Sendable {}
