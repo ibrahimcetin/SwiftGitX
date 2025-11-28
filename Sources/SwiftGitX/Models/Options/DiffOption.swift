@@ -1,4 +1,4 @@
-public struct DiffOption: OptionSet {
+public struct DiffOption: OptionSet, Sendable {
     public let rawValue: Int
 
     public init(rawValue: Int) {

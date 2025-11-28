@@ -9,7 +9,7 @@ import Foundation
 import libgit2
 
 /// A commit object representation in the repository.
-public struct Commit: Object {
+public struct Commit: Object, Sendable {
     /// The id of the commit.
     public let id: OID
 
@@ -91,7 +91,7 @@ public struct Commit: Object {
     public let type: ObjectType = .commit
 
     // This is necessary to get parents of the commit.
-    private let repositoryPointer: OpaquePointer
+    nonisolated(unsafe) private let repositoryPointer: OpaquePointer
 
     init(pointer: OpaquePointer) throws(SwiftGitXError) {
         let id = git_commit_id(pointer)?.pointee

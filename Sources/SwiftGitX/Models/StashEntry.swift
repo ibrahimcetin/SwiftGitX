@@ -1,7 +1,7 @@
 import Foundation
 
 /// A stash entry representation in the repository.
-public struct StashEntry: Equatable, Hashable {
+public struct StashEntry: Equatable, Hashable, Sendable {
     /// The index of the entry.
     public let index: Int
 

@@ -77,7 +77,7 @@ extension Diff {
         public let numberOfFiles: Int
 
         // Represents git_diff_file in libgit2.
-        let raw: git_diff_delta
+        nonisolated(unsafe) let raw: git_diff_delta
 
         init(raw: git_diff_delta) {
             type = DeltaType(rawValue: Int(raw.status.rawValue))!
@@ -123,7 +123,7 @@ extension Diff {
         /// The mode of the file.
         public let mode: FileMode
 
-        let raw: git_diff_file
+        nonisolated(unsafe) let raw: git_diff_file
 
         init(raw: git_diff_file) {
             id = OID(raw: raw.id)
@@ -154,7 +154,7 @@ extension Diff {
 
 extension Diff {
     // Represents git_diff_flag_t enum in libgit2
-    public enum Flag {
+    public enum Flag: Sendable {
         /// The file is binary.
         case binary
 
@@ -201,7 +201,7 @@ extension Diff {
 extension Diff {
     // Represents git_delta_t enum in libgit2
     /// Represents what type of change is described by ``Delta``.
-    public enum DeltaType: Int {
+    public enum DeltaType: Int, Sendable {
         /// No changes
         case unmodified = 0
 

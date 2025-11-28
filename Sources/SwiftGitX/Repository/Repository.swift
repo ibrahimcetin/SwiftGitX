@@ -9,9 +9,10 @@ import Foundation
 import libgit2
 
 /// A representation of a Git repository.
-public final class Repository {
+public final class Repository: Sendable {
+    // TODO: Should we really use a locking mechanism here? What are the performance implications?
     /// The libgit2 pointer of the repository.
-    internal let pointer: OpaquePointer
+    nonisolated(unsafe) internal let pointer: OpaquePointer
 
     /// Initialize a new repository with the specified libgit2 pointer.
     internal init(pointer: OpaquePointer) {

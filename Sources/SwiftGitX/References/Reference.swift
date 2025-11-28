@@ -6,7 +6,7 @@
 //
 
 /// A reference representation in a Git repository.
-public protocol Reference: Equatable, Hashable {
+public protocol Reference: Equatable, Hashable, Sendable {
     /// The target of the reference.
     var target: any Object { get }
 

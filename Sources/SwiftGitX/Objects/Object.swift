@@ -6,7 +6,7 @@
 //
 
 /// An object representation that can be stored in a Git repository.
-public protocol Object: Identifiable, Equatable, Hashable {
+public protocol Object: Identifiable, Equatable, Hashable, Sendable {
     /// The id of the object.
     var id: OID { get }
 

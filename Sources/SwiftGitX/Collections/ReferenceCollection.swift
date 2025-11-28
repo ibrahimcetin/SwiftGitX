@@ -8,8 +8,8 @@
 import libgit2
 
 /// A collection of references and their operations.
-public struct ReferenceCollection: Sequence {
-    private let repositoryPointer: OpaquePointer
+public struct ReferenceCollection: Sequence, Sendable {
+    nonisolated(unsafe) private let repositoryPointer: OpaquePointer
 
     init(repositoryPointer: OpaquePointer) {
         self.repositoryPointer = repositoryPointer

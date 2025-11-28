@@ -1,7 +1,7 @@
 import libgit2
 
 /// Options for the clone operation.
-public struct CloneOptions {
+public struct CloneOptions: Sendable {
     public static let `default` = CloneOptions()
 
     public static let bare = CloneOptions(bare: true)

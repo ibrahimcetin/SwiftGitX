@@ -9,7 +9,7 @@ import Foundation
 import libgit2
 
 /// A remote representation in the repository.
-public struct Remote: Equatable, Hashable {
+public struct Remote: Equatable, Hashable, Sendable {
     /// The name of the remote.
     public let name: String
 
@@ -25,7 +25,7 @@ public struct Remote: Equatable, Hashable {
     }
 
     /// The opaque pointer to the repository.
-    private let repositoryPointer: OpaquePointer
+    nonisolated(unsafe) private let repositoryPointer: OpaquePointer
 
     /// Initializes a `Remote` instance with the given opaque pointer.
     ///
