@@ -24,22 +24,38 @@ final class RepositorySwitchTests: SwiftGitXTest {
         #expect(head.fullName == branch.fullName)
     }
 
-    @Test("Switch to Remote Branch (Fresh Clone)")
-    func switchBranchGuess() async throws {
+    @Test("Switch to Remote Branch (Tracking Branch Created)")
+    func switchBranchRemote() async throws {
         let source = URL(string: "https://github.com/ibrahimcetin/PassbankMD.git")!
         let repositoryDirectory = mockDirectory()
         let repository = try await Repository.clone(from: source, to: repositoryDirectory)
 
-        // Switch to the branch
-        let remoteBranch = try repository.branch.get(named: "origin/fixes-for-kivymd-1.2")
+        let localBranches = try repository.branch.list(.local)
+        #expect(localBranches.count == 1)  // main branch
+
+        // Get the remote branch
+        let remoteBranches = try repository.branch.list(.remote)
+        let remoteBranch = remoteBranches[0]
+
+        // Switch to the remote branch
         try repository.switch(to: remoteBranch)
 
         // Get the HEAD reference
         let head = try repository.HEAD
 
+        let remoteName = try #require(remoteBranch.remote?.name)
+        let localBranchName = remoteBranch.name.replacing("\(remoteName)/", with: "")
+
         // Check the HEAD reference
-        #expect(head.name == remoteBranch.name.replacing("origin/", with: ""))
-        #expect(head.target as? Commit == remoteBranch.target as? Commit)
+        #expect(head.name == localBranchName)
+        #expect(head.fullName == "refs/heads/\(localBranchName)")
+        #expect(head.target.id == remoteBranch.target.id)
+
+        // Check the upstream branch
+        let localBranch = try repository.branch.get(named: localBranchName)
+        #expect(localBranch.upstream?.name == remoteBranch.name)
+        #expect(localBranch.upstream?.fullName == remoteBranch.fullName)
+        #expect(localBranch.upstream?.target.id == remoteBranch.target.id)
     }
 
     @Test("Switch to Commit")
