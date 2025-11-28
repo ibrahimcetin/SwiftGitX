@@ -40,6 +40,13 @@ public struct Branch: Reference, Sendable {
     public let remote: Remote?
 
     init(pointer: OpaquePointer) throws(SwiftGitXError) {
+        let pointer = try git {
+            var resolvedPointer: OpaquePointer?
+            let status = git_reference_resolve(&resolvedPointer, pointer)
+            return (resolvedPointer, status)
+        }
+        defer { git_reference_free(pointer) }
+
         let targetID = git_reference_target(pointer)
         let fullName = git_reference_name(pointer)
         let name = git_reference_shorthand(pointer)
