@@ -29,6 +29,9 @@ public struct ConfigCollection {
     /// This is the branch that is checked out when the repository is initialized.
     public var defaultBranchName: String {
         get throws(SwiftGitXError) {
+            try initializeRuntimeIfNeeded()
+            defer { try? shutdownRuntimeIfNeeded() }
+
             let configPointer = try self.configPointer()
             defer { git_config_free(configPointer) }
 
@@ -78,6 +81,9 @@ public struct ConfigCollection {
     /// try Repository.config.set("user.email", to: "john.doe@example.com")
     /// ```
     public func set(_ key: String, to value: String) throws(SwiftGitXError) {
+        try initializeRuntimeIfNeeded()
+        defer { try? shutdownRuntimeIfNeeded() }
+
         let configPointer = try self.configPointer()
         defer { git_config_free(configPointer) }
 
@@ -95,6 +101,9 @@ public struct ConfigCollection {
     /// All config files will be looked into, in the order of their defined level. A higher level means a higher
     /// priority. The first occurrence of the variable will be returned here.
     public func string(forKey key: String) throws(SwiftGitXError) -> String? {
+        try initializeRuntimeIfNeeded()
+        defer { try? shutdownRuntimeIfNeeded() }
+
         let configPointer = try self.configPointer()
         defer { git_config_free(configPointer) }
 
@@ -117,7 +126,7 @@ public struct ConfigCollection {
     ///
     /// - Important: The caller is responsible for freeing the returned pointer using `git_config_free()`.
     private func configPointer() throws(SwiftGitXError) -> OpaquePointer {
-        try git(operation: .config) {
+        return try git(operation: .config) {
             var configPointer: OpaquePointer?
             let status =
                 if let repositoryPointer {
@@ -126,6 +135,21 @@ public struct ConfigCollection {
                     git_config_open_default(&configPointer)
                 }
             return (configPointer, status)
+        }
+    }
+
+    /// Initializes the SwiftGitXRuntime if needed.
+    ///
+    /// While managing global configurations, the runtime may not have been initialized yet.
+    private func initializeRuntimeIfNeeded() throws(SwiftGitXError) {
+        if repositoryPointer == nil {
+            try SwiftGitXRuntime.initialize()
+        }
+    }
+
+    private func shutdownRuntimeIfNeeded() throws(SwiftGitXError) {
+        if repositoryPointer == nil {
+            try SwiftGitXRuntime.shutdown()
         }
     }
 }

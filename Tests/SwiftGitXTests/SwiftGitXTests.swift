@@ -76,14 +76,6 @@ class SwiftGitXTest {
 
         return directory
     }
-
-    init() throws {
-        try SwiftGitXRuntime.initialize()
-    }
-
-    deinit {
-        _ = try? SwiftGitXRuntime.shutdown()
-    }
 }
 
 // Test the SwiftGitXRuntime enum to initialize and shutdown the library
