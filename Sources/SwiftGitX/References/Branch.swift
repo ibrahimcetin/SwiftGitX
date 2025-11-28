@@ -58,16 +58,13 @@ public struct Branch: Reference, Sendable {
         self.fullName = String(cString: fullName)
 
         // Set the type of the branch.
-        type =
-            if self.fullName.hasPrefix(GitDirectoryConstants.heads) {
+        self.type =
+            if git_reference_is_branch(pointer) == 1 {
                 .local
-            } else if self.fullName.hasPrefix(GitDirectoryConstants.remotes) {
+            } else if git_reference_is_remote(pointer) == 1 {
                 .remote
-            } else if self.fullName == "HEAD" {
-                .local
             } else {
-                // ? Should we throw an error here?
-                throw SwiftGitXError(code: .error, category: .reference, message: "Invalid branch type")
+                .local  // Default to .local if unknown or HEAD
             }
 
         // Get the upstream branch of the branch.

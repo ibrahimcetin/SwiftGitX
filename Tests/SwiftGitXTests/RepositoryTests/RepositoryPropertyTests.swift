@@ -9,7 +9,7 @@ final class RepositoryPropertyTests: SwiftGitXTest {
         let repository = mockRepository()
 
         // Commit the file
-        try repository.mockCommit()
+        let commit = try repository.mockCommit()
 
         // Get the HEAD reference
         let head = try repository.HEAD
@@ -17,6 +17,25 @@ final class RepositoryPropertyTests: SwiftGitXTest {
         // Check the HEAD reference
         #expect(head.name == "main")
         #expect(head.fullName == "refs/heads/main")
+        #expect(head.target.id == commit.id)
+    }
+
+    @Test("Repository detached HEAD")
+    func repositoryDetachedHEAD() async throws {
+        let repository = mockRepository()
+        let commit = try repository.mockCommit()
+
+        // Switch to commit
+        try repository.switch(to: commit)
+
+        // Get the HEAD branch
+        let head = try #require(try repository.HEAD as? Branch)
+
+        // Check the HEAD reference
+        #expect(head.name == "HEAD")
+        #expect(head.fullName == "HEAD")
+        #expect(head.target.id == commit.id)
+        #expect(head.type == .local)
     }
 
     @Test("Repository HEAD unborn")
