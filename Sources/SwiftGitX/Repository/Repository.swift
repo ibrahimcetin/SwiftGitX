@@ -65,7 +65,11 @@ public final class Repository: Sendable {
     }
 
     deinit {
+        // Free the repository pointer
         git_repository_free(pointer)
+
+        // Shutdown the SwiftGitXRuntime
+        _ = try? SwiftGitXRuntime.shutdown()
     }
 }
 
