@@ -31,6 +31,9 @@ public final class Repository: Sendable {
     ///
     /// The `path` argument must point to either an existing working directory, or a `.git` repository folder to open.
     public init(at path: URL, createIfNotExists: Bool = true) throws(SwiftGitXError) {
+        // Initialize the SwiftGitXRuntime
+        try SwiftGitXRuntime.initialize()
+
         let pointerOpen = try? git(operation: .repositoryOpen) {
             var pointer: OpaquePointer?
             // Try to open the repository at the specified path
@@ -50,6 +53,10 @@ public final class Repository: Sendable {
 
             self.pointer = pointerCreate
         } else {
+            // Shutdown the SwiftGitXRuntime
+            _ = try? SwiftGitXRuntime.shutdown()
+
+            // If the repository does not exist and createIfNotExists is false, throw an error
             throw SwiftGitXError(
                 code: .notFound, category: .repository,
                 message: "Repository not found at \(path.path)"
@@ -58,7 +65,11 @@ public final class Repository: Sendable {
     }
 
     deinit {
+        // Free the repository pointer
         git_repository_free(pointer)
+
+        // Shutdown the SwiftGitXRuntime
+        _ = try? SwiftGitXRuntime.shutdown()
     }
 }
 
@@ -163,13 +174,25 @@ extension Repository {
     ///
     /// - Returns: The repository at the specified path.
     public static func open(at path: URL) throws(SwiftGitXError) -> Repository {
-        let pointer = try git(operation: .repositoryOpen) {
-            var pointer: OpaquePointer?
-            let status = git_repository_open(&pointer, path.path)
-            return (pointer, status)
-        }
+        // Initialize the SwiftGitXRuntime
+        try SwiftGitXRuntime.initialize()
 
-        return Repository(pointer: pointer)
+        do {
+            // Open the repository at the specified path
+            let pointer = try git(operation: .repositoryOpen) {
+                var pointer: OpaquePointer?
+                let status = git_repository_open(&pointer, path.path)
+                return (pointer, status)
+            }
+
+            return Repository(pointer: pointer)
+        } catch {
+            // Shutdown the SwiftGitXRuntime
+            _ = try? SwiftGitXRuntime.shutdown()
+
+            // Rethrow the error
+            throw error
+        }
     }
 
     /// Create a new repository at the specified path.
@@ -180,14 +203,25 @@ extension Repository {
     ///
     /// - Returns: The repository at the specified path.
     public static func create(at path: URL, isBare: Bool = false) throws(SwiftGitXError) -> Repository {
-        // Create a new repository at the specified URL
-        let pointer = try git(operation: .repositoryCreate) {
-            var pointer: OpaquePointer?
-            let status = git_repository_init(&pointer, path.path, isBare ? 1 : 0)
-            return (pointer, status)
-        }
+        // Initialize the SwiftGitXRuntime
+        try SwiftGitXRuntime.initialize()
 
-        return Repository(pointer: pointer)
+        do {
+            // Create a new repository at the specified URL
+            let pointer = try git(operation: .repositoryCreate) {
+                var pointer: OpaquePointer?
+                let status = git_repository_init(&pointer, path.path, isBare ? 1 : 0)
+                return (pointer, status)
+            }
+
+            return Repository(pointer: pointer)
+        } catch {
+            // Shutdown the SwiftGitXRuntime
+            _ = try? SwiftGitXRuntime.shutdown()
+
+            // Rethrow the error
+            throw error
+        }
     }
 }
 

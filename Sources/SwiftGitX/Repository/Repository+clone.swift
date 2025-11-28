@@ -25,6 +25,9 @@ extension Repository {
         to localURL: URL,
         options: CloneOptions = .default
     ) async throws(SwiftGitXError) -> Repository {
+        // Initialize the SwiftGitXRuntime
+        try SwiftGitXRuntime.initialize()
+
         // Initialize the clone options
         var options = options.gitCloneOptions
 
@@ -37,16 +40,24 @@ extension Repository {
             Task.isCancelled ? 1 : 0
         }
 
-        let pointer = try git(operation: .clone) {
-            // Repository pointer
-            var pointer: OpaquePointer?
-            // Perform the clone operation
-            let status = git_clone(&pointer, remoteURL.absoluteString, localURL.path, &options)
+        do {
+            let pointer = try git(operation: .clone) {
+                // Repository pointer
+                var pointer: OpaquePointer?
+                // Perform the clone operation
+                let status = git_clone(&pointer, remoteURL.absoluteString, localURL.path, &options)
 
-            return (pointer, status)
+                return (pointer, status)
+            }
+
+            return Repository(pointer: pointer)
+        } catch {
+            // Shutdown the SwiftGitXRuntime
+            _ = try? SwiftGitXRuntime.shutdown()
+
+            // Rethrow the error
+            throw error
         }
-
-        return Repository(pointer: pointer)
     }
 
     /// Clone a repository from the specified URL to the specified path with a transfer progress handler.
@@ -65,6 +76,9 @@ extension Repository {
         options: CloneOptions = .default,
         transferProgressHandler: @escaping TransferProgressHandler
     ) async throws(SwiftGitXError) -> Repository {
+        // Initialize the SwiftGitXRuntime
+        try SwiftGitXRuntime.initialize()
+
         // Define the transferProgress callback
         let transferProgress: git_indexer_progress_cb = { stats, payload in
             guard let stats = stats?.pointee,
@@ -105,13 +119,21 @@ extension Repository {
         // Set the transferProgressHandler as the payload
         options.fetch_opts.callbacks.payload = UnsafeMutableRawPointer(transferProgressHandlerPointer)
 
-        // Perform the clone operation
-        let pointer = try git(operation: .clone) {
-            var pointer: OpaquePointer?
-            let status = git_clone(&pointer, remoteURL.absoluteString, localURL.path, &options)
-            return (pointer, status)
-        }
+        do {
+            // Perform the clone operation
+            let pointer = try git(operation: .clone) {
+                var pointer: OpaquePointer?
+                let status = git_clone(&pointer, remoteURL.absoluteString, localURL.path, &options)
+                return (pointer, status)
+            }
 
-        return Repository(pointer: pointer)
+            return Repository(pointer: pointer)
+        } catch {
+            // Shutdown the SwiftGitXRuntime
+            _ = try? SwiftGitXRuntime.shutdown()
+
+            // Rethrow the error
+            throw error
+        }
     }
 }
