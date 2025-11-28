@@ -229,9 +229,9 @@ final class TagCreateTests: SwiftGitXTest {
 
         // Get first blob from commit's tree
         let tree = try commit.tree
-        let blob: Blob = tree.entries.compactMap {
-            try? repository.show(id: $0.id)
-        }.first!
+        let blob: Blob = try #require(
+            tree.entries.compactMap { (entry) -> Blob? in try? repository.show(id: entry.id) }.first
+        )
 
         // Create lightweight tag pointing to blob
         let lightweightTag = try repository.tag.create(named: "v1.0.0", target: blob, type: .lightweight)
