@@ -21,14 +21,14 @@ extension Repository {
 
         if localBranchExists {
             // Perform the checkout operation
-            try checkout(commitID: branch.target.id)
+            try checkout(to: branch)
 
             // Set the HEAD to the reference
             try setHEAD(to: branch)
         } else {
             if let localBranch = try guessBranch(named: branch.name) {
                 // Perform the checkout operation
-                try checkout(commitID: localBranch.target.id)
+                try checkout(to: localBranch)
 
                 // Set the HEAD to the reference
                 try setHEAD(to: localBranch)
@@ -50,7 +50,7 @@ extension Repository {
     /// The repository will be in a detached HEAD state after switching to the tag.
     public func `switch`(to tag: Tag) throws(SwiftGitXError) {
         // Perform the checkout operation
-        try checkout(commitID: tag.target.id)
+        try checkout(to: tag)
 
         // Set the HEAD to the tag
         try setHEAD(to: tag)
@@ -65,39 +65,31 @@ extension Repository {
     /// The repository will be in a detached HEAD state after switching to the commit.
     public func `switch`(to commit: Commit) throws(SwiftGitXError) {
         // Perform the checkout operation
-        try checkout(commitID: commit.id)
+        try checkout(to: commit)
 
         // Set the HEAD to the commit
         try setHEAD(to: commit)
     }
 
-    // TODO: Implement checkout options as parameter
-    private func checkout(commitID: OID) throws(SwiftGitXError) {
-        // Lookup the commit
-        let commitPointer = try ObjectFactory.lookupObjectPointer(
-            oid: commitID.raw,
-            type: GIT_OBJECT_COMMIT,
-            repositoryPointer: pointer
-        )
-        defer { git_object_free(commitPointer) }
-
-        var options = git_checkout_options()
-        git_checkout_init_options(&options, UInt32(GIT_CHECKOUT_OPTIONS_VERSION))
-
-        options.checkout_strategy = GIT_CHECKOUT_SAFE.rawValue
-
-        // Perform the checkout operation
-        try git(operation: .checkout) {
-            git_checkout_tree(pointer, commitPointer, &options)
-        }
-    }
-
+    /// Sets HEAD to point to the specified reference (branch or tag).
+    ///
+    /// - Parameter reference: The reference to set HEAD to.
+    ///
+    /// This method updates the HEAD reference to point to the given reference.
+    /// For branches, this makes the branch the current branch.
+    /// For tags, this results in a detached HEAD state pointing to the tag.
     private func setHEAD(to reference: any Reference) throws(SwiftGitXError) {
         try git {
             git_repository_set_head(pointer, reference.fullName)
         }
     }
 
+    /// Sets HEAD to point directly to the specified commit (detached HEAD).
+    ///
+    /// - Parameter commit: The commit to set HEAD to.
+    ///
+    /// This method puts the repository in a "detached HEAD" state,
+    /// where HEAD points directly to a commit instead of a branch reference.
     private func setHEAD(to commit: Commit) throws(SwiftGitXError) {
         var commitID = commit.id.raw
         try git {
