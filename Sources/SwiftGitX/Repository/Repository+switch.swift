@@ -12,47 +12,50 @@ extension Repository {
     ///
     /// - Parameter branch: The branch to switch to.
     ///
-    /// - Throws: `RepositoryError.failedToSwitch` if the switch operation fails.
+    /// - Throws: `SwiftGitXError` if the switch operation fails.
     ///
-    /// If the branch does not exist locally, the method tries to find a remote branch with the same name.
+    /// This method updates both the working directory and the HEAD reference to point to the specified branch.
+    ///
+    /// - For **local branches**: The method checks out the branch and updates HEAD to point to it.
+    /// - For **remote branches**: The method creates a local tracking branch (if it doesn't exist),
+    ///   sets up upstream tracking, checks out the local branch, and updates HEAD to point to it.
+    ///
+    /// ### Example
+    /// ```swift
+    /// // Switch to a local branch
+    /// let branch = try repository.branch.get(named: "develop")
+    /// try repository.switch(to: branch)
+    ///
+    /// // Switch to a remote branch (creates local tracking branch)
+    /// let remoteBranch = try repository.branch.get(named: "origin/feature", type: .remote)
+    /// try repository.switch(to: remoteBranch)
+    /// ```
     public func `switch`(to branch: Branch) throws(SwiftGitXError) {
-        // Get the list of local branches. Use list(.local) to throw an error if the operation fails.
-        let localBranchExists = try self.branch.list(.local).map(\.fullName).contains(branch.fullName)
+        let localBranch: Branch
 
-        if localBranchExists {
-            // Perform the checkout operation
-            try checkout(to: branch)
-
-            // Set the HEAD to the reference
-            try setHEAD(to: branch)
+        if branch.type == .remote {
+            localBranch = try createTrackingBranch(from: branch)
         } else {
-            if let localBranch = try guessBranch(named: branch.name) {
-                // Perform the checkout operation
-                try checkout(to: localBranch)
-
-                // Set the HEAD to the reference
-                try setHEAD(to: localBranch)
-            } else {
-                throw SwiftGitXError(
-                    code: .error, category: .repository,
-                    message: "Failed to switch to the branch \(branch.fullName)"
-                )
-            }
+            localBranch = branch
         }
+
+        try checkout(to: localBranch)
+        try setHEAD(to: localBranch)
     }
 
     /// Switches the HEAD to the specified tag.
     ///
     /// - Parameter tag: The tag to switch to.
     ///
-    /// - Throws: `RepositoryError.failedToSwitch` if the switch operation fails.
+    /// This method updates both the working directory and the HEAD reference to point to the specified tag.
     ///
-    /// The repository will be in a detached HEAD state after switching to the tag.
+    /// ### Example
+    /// ```swift
+    /// let tag = try repository.tag.get(named: "v1.0.0")
+    /// try repository.switch(to: tag)
+    /// ```
     public func `switch`(to tag: Tag) throws(SwiftGitXError) {
-        // Perform the checkout operation
         try checkout(to: tag)
-
-        // Set the HEAD to the tag
         try setHEAD(to: tag)
     }
 
@@ -60,60 +63,73 @@ extension Repository {
     ///
     /// - Parameter commit: The commit to switch to.
     ///
-    /// - Throws: `RepositoryError.failedToSwitch` if the switch operation fails.
+    /// This method updates both the working directory and the HEAD reference to point to the specified commit.
     ///
-    /// The repository will be in a detached HEAD state after switching to the commit.
+    /// - Note: The repository will be in a detached HEAD state after switching to the commit.
+    ///
+    /// ### Example
+    /// ```swift
+    /// let commit = try repository.log().first!
+    /// try repository.switch(to: commit)
+    /// ```
     public func `switch`(to commit: Commit) throws(SwiftGitXError) {
-        // Perform the checkout operation
         try checkout(to: commit)
-
-        // Set the HEAD to the commit
         try setHEAD(to: commit)
     }
 
+    // MARK: - Private Helpers
+
     /// Sets HEAD to point to the specified reference (branch or tag).
-    ///
-    /// - Parameter reference: The reference to set HEAD to.
-    ///
-    /// This method updates the HEAD reference to point to the given reference.
-    /// For branches, this makes the branch the current branch.
-    /// For tags, this results in a detached HEAD state pointing to the tag.
     private func setHEAD(to reference: any Reference) throws(SwiftGitXError) {
-        try git {
+        try git(operation: .switch) {
             git_repository_set_head(pointer, reference.fullName)
         }
     }
 
     /// Sets HEAD to point directly to the specified commit (detached HEAD).
-    ///
-    /// - Parameter commit: The commit to set HEAD to.
-    ///
-    /// This method puts the repository in a "detached HEAD" state,
-    /// where HEAD points directly to a commit instead of a branch reference.
     private func setHEAD(to commit: Commit) throws(SwiftGitXError) {
         var commitID = commit.id.raw
-        try git {
+        try git(operation: .switch) {
             git_repository_set_head_detached(pointer, &commitID)
         }
     }
 
-    private func guessBranch(named branchName: String) throws(SwiftGitXError) -> Branch? {
-        // Get the list of remotes
-        for remote in try remote.list() {
-            // Get the list of remote branches for each remote
-            for remoteBranch in remote.branches where remoteBranch.name == branchName {
-                // If the tracking branch is found, create a local branch from it
-                guard let target = remoteBranch.target as? Commit
-                else { continue }
-
-                // Remove the remote name from the branch name
-                let newBranchName = remoteBranch.name.replacingOccurrences(of: "\(remote.name)/", with: "")
-
-                // Create a new branch from the remote branch
-                return try self.branch.create(named: newBranchName, target: target)
-            }
+    /// Creates a local tracking branch from a remote branch.
+    ///
+    /// - Parameters:
+    ///   - remoteBranch: The remote branch to create the local branch from.
+    ///
+    /// - Returns: The newly created local branch with upstream tracking configured.
+    private func createTrackingBranch(from remoteBranch: Branch) throws(SwiftGitXError) -> Branch {
+        guard let commit = remoteBranch.target as? Commit else {
+            throw SwiftGitXError(
+                code: .error, operation: .switch, category: .reference,
+                message: "Remote branch does not point to a commit"
+            )
         }
 
-        return nil
+        let remoteName = remoteBranch.remote?.name ?? "origin"
+        let localBranchName = remoteBranch.name.replacingOccurrences(of: "\(remoteName)/", with: "")
+
+        switch self.branch[localBranchName, type: .local] {
+        case .some(let localBranch):
+            // If the local branch exists, return it
+            if localBranch.upstream?.name != remoteBranch.name {
+                try self.branch.setUpstream(from: localBranch, to: remoteBranch)
+            }
+
+            return localBranch
+        case .none:
+            // If the local branch does not exist, continue to create it
+            // Create the local branch
+            let localBranch = try self.branch.create(named: localBranchName, target: commit)
+
+            // Set up upstream tracking
+            try self.branch.setUpstream(from: localBranch, to: remoteBranch)
+
+            // Return fresh branch with upstream info populated
+            return try self.branch.get(named: localBranchName, type: .local)
+        }
+
     }
 }
