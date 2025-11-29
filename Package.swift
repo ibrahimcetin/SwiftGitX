@@ -6,8 +6,11 @@ import PackageDescription
 let package = Package(
     name: "SwiftGitX",
     platforms: [
-        .macOS(.v11),
-        .iOS(.v13)
+        .macOS(.v10_15),
+        .iOS(.v13),
+        .tvOS(.v13),
+        .visionOS(.v1),
+        .watchOS(.v6),
     ],
     products: [
         // Products define the executables and libraries a package produces, making them visible to other packages.
@@ -17,7 +20,7 @@ let package = Package(
         )
     ],
     dependencies: [
-        .package(url: "https://github.com/ibrahimcetin/libgit2.git", from: "1.9.1")
+        .package(url: "https://github.com/ibrahimcetin/libgit2.git", branch: "v1.9.2")
     ],
     targets: [
         // Targets are the basic building blocks of a package, defining a module or a test suite.
