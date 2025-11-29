@@ -58,7 +58,7 @@ final class RemoteCollectionTests: SwiftGitXTest {
         let localRepository = try await Repository.clone(from: remoteRepository.workingDirectory, to: localDirectory)
 
         // Get the remote from the repository excluding the main branch
-        let remoteBranches = Array(localRepository.branch.remote)
+        let remoteBranches = Array(localRepository.branch.remote.filter { $0.referenceType == .direct })
 
         // Check if the branches are the same
         #expect(remoteBranches.count == 8)
