@@ -14,12 +14,14 @@ extension Repository {
     ///
     /// - Parameter reference: The reference to checkout.
     ///
-    /// This method updates the working directory files to match the state of the reference.
-    /// It does not update HEAD. Use ``switch`` methods to update the HEAD reference after checkout.
+    /// - Important: This method updates the working directory files to match the state of the reference.
+    /// It does not update HEAD. Use `switch(to:)` methods to update the HEAD reference after checkout.
+    ///
+    /// - SeeAlso: `switch(to:)`
     ///
     /// ### Example
     /// ```swift
-    // let branch = try repository.branch(named: "main")
+    /// let branch = try repository.branch.get(named: "main")
     /// try repository.checkout(to: branch)
     /// ```
     public func checkout(to reference: any Reference) throws(SwiftGitXError) {
@@ -30,8 +32,16 @@ extension Repository {
     ///
     /// - Parameter commit: The commit to checkout.
     ///
-    /// This method updates the working directory files to match the state of the given commit.
-    /// It does not update HEAD. Use ``switch`` methods to update the HEAD reference after checkout.
+    /// - Important: This method updates the working directory files to match the state of the given commit.
+    /// It does not update HEAD. Use `switch(to:)-` methods to update the HEAD reference after checkout.
+    ///
+    /// - SeeAlso: `switch(to:)`
+    ///
+    /// ### Example
+    /// ```swift
+    /// let commit = try repository.log().first!
+    /// try repository.checkout(to: commit)
+    ///
     public func checkout(to commit: Commit) throws(SwiftGitXError) {
         try checkout(commitID: commit.id)
     }
