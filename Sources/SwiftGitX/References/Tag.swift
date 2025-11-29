@@ -26,6 +26,11 @@ public struct Tag: Object, Reference {
     /// For example, `refs/tags/v1.0.0`.
     public let fullName: String
 
+    /// The type of the reference.
+    ///
+    /// It is always `direct` for tags.
+    public let referenceType: ReferenceType = .direct
+
     /// The tagger of the tag.
     ///
     /// If the tag is lightweight, the tagger will be `nil`.

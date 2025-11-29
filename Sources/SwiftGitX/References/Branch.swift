@@ -29,6 +29,11 @@ public struct Branch: Reference, Sendable {
     /// It can be either `local` or `remote`.
     public let type: BranchType
 
+    /// The type of the reference.
+    ///
+    /// It can be either `direct` or `symbolic` for branches.
+    public let referenceType: ReferenceType
+
     /// The upstream branch of the branch.
     ///
     /// This property available for local branches only.
@@ -40,21 +45,19 @@ public struct Branch: Reference, Sendable {
     public let remote: Remote?
 
     init(pointer: OpaquePointer) throws(SwiftGitXError) {
-        let pointer = try git {
-            var resolvedPointer: OpaquePointer?
-            let status = git_reference_resolve(&resolvedPointer, pointer)
-            return (resolvedPointer, status)
-        }
-        defer { git_reference_free(pointer) }
-
-        let targetID = git_reference_target(pointer)
         let fullName = git_reference_name(pointer)
         let name = git_reference_shorthand(pointer)
 
         let repositoryPointer = git_reference_owner(pointer)
 
-        guard let targetID = targetID?.pointee, let fullName, let name, let repositoryPointer else {
-            throw SwiftGitXError(code: .error, category: .reference, message: "Branch is invalid")
+        guard let fullName, let name, let repositoryPointer else {
+            throw SwiftGitXError(code: .error, category: .reference, message: "Invalid branch")
+        }
+
+        let targetID = try git {
+            var oid = git_oid()
+            let status = git_reference_name_to_id(&oid, repositoryPointer, fullName)
+            return (oid, status)
         }
 
         // Get the target object of the branch.
@@ -73,6 +76,22 @@ public struct Branch: Reference, Sendable {
             } else {
                 .local  // Default to .local if unknown or HEAD
             }
+
+        // Set the type of the reference.
+        let referenceType = git_reference_type(pointer)
+
+        switch referenceType {
+        case GIT_REFERENCE_DIRECT:
+            self.referenceType = .direct
+        case GIT_REFERENCE_SYMBOLIC:
+            let symbolicTarget = git_reference_symbolic_target(pointer)
+            guard let symbolicTarget else {
+                throw SwiftGitXError(code: .error, category: .reference, message: "Symbolic branch has no target")
+            }
+            self.referenceType = .symbolic(target: String(cString: symbolicTarget))
+        default:
+            self.referenceType = .invalid
+        }
 
         // Get the upstream branch of the branch.
         let upstreamPointer = try? git {

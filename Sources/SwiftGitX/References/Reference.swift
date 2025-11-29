@@ -19,6 +19,11 @@ public protocol Reference: Equatable, Hashable, Sendable {
     ///
     /// For example, `refs/heads/main`.
     var fullName: String { get }
+
+    /// The type of the reference.
+    ///
+    /// It can be either `direct` or `symbolic`.
+    var referenceType: ReferenceType { get }
 }
 
 extension Reference {
