@@ -35,6 +35,7 @@ final class RepositorySwitchTests: SwiftGitXTest {
 
         // Get the remote branch
         let remoteBranches = try repository.branch.list(.remote)
+            .filter({ $0.referenceType == .direct })  // Filter out symbolic branches (origin/HEAD)
         let remoteBranch = remoteBranches[0]
 
         // Switch to the remote branch
