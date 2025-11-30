@@ -76,6 +76,30 @@ class SwiftGitXTest {
 
         return directory
     }
+
+    #if os(iOS) || os(tvOS) || os(watchOS)
+        private actor TestConfigurator {
+            private var isConfigured = false
+
+            func configureIfNeeded() throws {
+                guard !isConfigured else { return }
+                try SwiftGitXRuntime.initialize()
+
+                try Repository.config.set("user.name", to: "SwiftGitX Tests")
+                try Repository.config.set("user.email", to: "swiftgitx@tests.com")
+                try Repository.config.set("init.defaultBranch", to: "main")
+
+                try SwiftGitXRuntime.shutdown()
+                isConfigured = true
+            }
+        }
+
+        private static let configurator = TestConfigurator()
+
+        init() async throws {
+            try await Self.configurator.configureIfNeeded()
+        }
+    #endif
 }
 
 // Test the SwiftGitXRuntime enum to initialize and shutdown the library
