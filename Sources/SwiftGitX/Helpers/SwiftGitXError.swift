@@ -460,3 +460,17 @@ extension SwiftGitXError.Code {
     /// Returns true if there are uncommitted changes.
     public var hasUncommittedChanges: Bool { self == .uncommitted || self == .modified }
 }
+
+extension SwiftGitXError: CustomDebugStringConvertible {
+    public var debugDescription: String {
+        """
+
+        ┌─ SwiftGitXError ────────────────────────────
+        │ Operation: \(operation?.rawValue ?? "(none)")
+        │ Code:      \(code)
+        │ Category:  \(category)
+        │ Message:   \(message)
+        └─────────────────────────────────────────────
+        """
+    }
+}
