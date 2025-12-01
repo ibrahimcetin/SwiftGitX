@@ -188,8 +188,8 @@ final class SignatureDefaultTests: SwiftGitXTest {
 
 @Suite("Signature - Raw Conversion", .tags(.signature, .model))
 final class SignatureRawTests: SwiftGitXTest {
-    override init() async throws {
-        try await super.init()
+    override init() throws {
+        try super.init()
         try SwiftGitXRuntime.initialize()
     }
 
