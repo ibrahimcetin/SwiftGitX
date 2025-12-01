@@ -77,8 +77,8 @@ public struct Tag: Object, Reference {
 
         // Set the tagger of the tag.
         self.tagger =
-            if let tagger = tagger?.pointee {
-                Signature(raw: tagger)
+            if let tagger {
+                Signature(pointer: tagger)
             } else { nil }
 
         // Set the message of the tag. If the message is empty, set it to `nil`.

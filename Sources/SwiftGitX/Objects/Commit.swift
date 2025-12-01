@@ -105,8 +105,8 @@ public struct Commit: Object, Sendable {
         let repositoryPointer = git_commit_owner(pointer)
 
         guard let id,
-            let author = author?.pointee,
-            let committer = committer?.pointee,
+            let author,
+            let committer,
             let message, let summary,
             let treeID,
             let repositoryPointer
@@ -115,8 +115,8 @@ public struct Commit: Object, Sendable {
         }
 
         self.id = OID(raw: id)
-        self.author = Signature(raw: author)
-        self.committer = Signature(raw: committer)
+        self.author = Signature(pointer: author)
+        self.committer = Signature(pointer: committer)
         self.message = String(cString: message)
         self.body = if let body { String(cString: body) } else { nil }
         self.summary = String(cString: summary)

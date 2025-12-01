@@ -34,25 +34,9 @@ public struct Signature: Equatable, Hashable, Sendable {
 }
 
 extension Signature {
-    var raw: git_signature {
-        get throws(SwiftGitXError) {
-            let signaturePointer = try git(operation: .signature) {
-                var pointer: UnsafeMutablePointer<git_signature>?
-                let status = git_signature_new(
-                    &pointer,
-                    name,
-                    email,
-                    git_time_t(date.timeIntervalSince1970),
-                    Int32(timezone.secondsFromGMT() / 60)
-                )
-                return (pointer, status)
-            }
+    init(pointer: UnsafePointer<git_signature>) {
+        let raw = pointer.pointee
 
-            return signaturePointer.pointee
-        }
-    }
-
-    init(raw: git_signature) {
         name = String(cString: raw.name)
         email = String(cString: raw.email)
         date = Date(timeIntervalSince1970: TimeInterval(raw.when.time))
@@ -78,7 +62,7 @@ extension Signature {
         }
         defer { git_signature_free(signaturePointer) }
 
-        return Signature(raw: signaturePointer.pointee)
+        return Signature(pointer: signaturePointer)
     }
 }
 
