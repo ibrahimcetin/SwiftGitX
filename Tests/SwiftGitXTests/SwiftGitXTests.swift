@@ -99,6 +99,8 @@ class SwiftGitXTest {
         init() async throws {
             try await Self.configurator.configureIfNeeded()
         }
+    #else
+        init() async throws {}
     #endif
 }
 

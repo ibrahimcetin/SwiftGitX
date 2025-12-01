@@ -1,5 +1,6 @@
 import Foundation
 import Testing
+import libgit2
 
 @testable import SwiftGitX
 
@@ -187,6 +188,13 @@ final class SignatureDefaultTests: SwiftGitXTest {
 
 @Suite("Signature - Raw Conversion", .tags(.signature, .model))
 final class SignatureRawTests: SwiftGitXTest {
+    override init() async throws {
+        try await super.init()
+        try SwiftGitXRuntime.initialize()
+    }
+
+    deinit { _ = try? SwiftGitXRuntime.shutdown() }
+
     @Test("Convert to raw preserves name and email")
     func rawPreservesNameAndEmail() async throws {
         let signature = Signature(
@@ -194,7 +202,10 @@ final class SignatureRawTests: SwiftGitXTest {
             email: "test@example.com"
         )
 
-        let raw = try signature.raw
+        let pointer = try ObjectFactory.makeSignaturePointer(signature: signature)
+        defer { git_signature_free(pointer) }
+
+        let raw = pointer.pointee
 
         #expect(String(cString: raw.name) == "Test User")
         #expect(String(cString: raw.email) == "test@example.com")
@@ -210,7 +221,10 @@ final class SignatureRawTests: SwiftGitXTest {
             date: specificDate
         )
 
-        let raw = try signature.raw
+        let pointer = try ObjectFactory.makeSignaturePointer(signature: signature)
+        defer { git_signature_free(pointer) }
+
+        let raw = pointer.pointee
 
         #expect(raw.when.time == 1_700_000_000)
     }
@@ -226,7 +240,10 @@ final class SignatureRawTests: SwiftGitXTest {
             timezone: timezone
         )
 
-        let raw = try signature.raw
+        let pointer = try ObjectFactory.makeSignaturePointer(signature: signature)
+        defer { git_signature_free(pointer) }
+
+        let raw = pointer.pointee
 
         // Offset is stored in minutes
         #expect(raw.when.offset == 180)
@@ -243,7 +260,10 @@ final class SignatureRawTests: SwiftGitXTest {
             timezone: timezone
         )
 
-        let raw = try signature.raw
+        let pointer = try ObjectFactory.makeSignaturePointer(signature: signature)
+        defer { git_signature_free(pointer) }
+
+        let raw = pointer.pointee
 
         #expect(raw.when.offset == -300)
     }
@@ -261,8 +281,10 @@ final class SignatureRawTests: SwiftGitXTest {
         )
 
         // Convert to raw and back
-        let raw = try original.raw
-        let converted = Signature(raw: raw)
+        let pointer = try ObjectFactory.makeSignaturePointer(signature: original)
+        defer { git_signature_free(pointer) }
+
+        let converted = Signature(pointer: pointer)
 
         #expect(converted.name == original.name)
         #expect(converted.email == original.email)
@@ -281,8 +303,10 @@ final class SignatureRawTests: SwiftGitXTest {
             timezone: utc
         )
 
-        let raw = try original.raw
-        let converted = Signature(raw: raw)
+        let pointer = try ObjectFactory.makeSignaturePointer(signature: original)
+        defer { git_signature_free(pointer) }
+
+        let converted = Signature(pointer: pointer)
 
         #expect(converted.timezone.secondsFromGMT() == 0)
     }
