@@ -31,6 +31,4 @@ extension Repository {
             git_remote_fetch(remotePointer, nil, nil, nil)
         }
     }
-
-    // TODO: Implement pull
 }

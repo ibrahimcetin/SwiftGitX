@@ -16,7 +16,9 @@ extension Testing.Tag {
     @Tag static var diff: Self
     @Tag static var fetch: Self
     @Tag static var log: Self
+    @Tag static var merge: Self
     @Tag static var patch: Self
+    @Tag static var pull: Self
     @Tag static var push: Self
     @Tag static var reset: Self
     @Tag static var restore: Self
