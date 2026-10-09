@@ -297,7 +297,7 @@ final class BranchCollectionTests: SwiftGitXTest {
 final class BranchRemoteTests: SwiftGitXTest {
     @Test("Get upstream branch")
     func branchGetUpstream() async throws {
-        let source = URL(string: "https://github.com/ibrahimcetin/SwiftGitX.git")!
+        let source = mockCloneSource(suffix: "--upstream-read").path
         let directory = mockDirectory()
         let repository = try await Repository.clone(from: source, to: directory)
 
@@ -310,7 +310,7 @@ final class BranchRemoteTests: SwiftGitXTest {
 
     @Test("Set upstream branch")
     func branchSetUpstream() async throws {
-        let source = URL(string: "https://github.com/ibrahimcetin/SwiftGitX.git")!
+        let source = mockCloneSource(suffix: "--upstream-set").path
         let directory = mockDirectory()
         let repository = try await Repository.clone(from: source, to: directory)
 
@@ -331,7 +331,7 @@ final class BranchRemoteTests: SwiftGitXTest {
 
     @Test("Unset upstream branch")
     func branchUnsetUpstream() async throws {
-        let source = URL(string: "https://github.com/ibrahimcetin/SwiftGitX.git")!
+        let source = mockCloneSource(suffix: "--upstream-unset").path
         let directory = mockDirectory()
         let repository = try await Repository.clone(from: source, to: directory)
 
@@ -347,7 +347,7 @@ final class BranchRemoteTests: SwiftGitXTest {
 
     @Test("Set upstream with explicit local branch")
     func branchSetUpstreamExplicit() async throws {
-        let source = URL(string: "https://github.com/ibrahimcetin/SwiftGitX.git")!
+        let source = mockCloneSource(suffix: "--upstream-explicit").path
         let directory = mockDirectory()
         let repository = try await Repository.clone(from: source, to: directory)
 
@@ -367,7 +367,7 @@ final class BranchRemoteTests: SwiftGitXTest {
 
     @Test("Iterate remote branches")
     func branchSequenceRemote() async throws {
-        let source = URL(string: "https://github.com/ibrahimcetin/SwiftGitX.git")!
+        let source = mockCloneSource(suffix: "--remote-iterate").path
         let directory = mockDirectory()
         let repository = try await Repository.clone(from: source, to: directory)
 
@@ -386,7 +386,7 @@ final class BranchRemoteTests: SwiftGitXTest {
 
     @Test("List remote branches")
     func branchListRemote() async throws {
-        let source = URL(string: "https://github.com/ibrahimcetin/SwiftGitX.git")!
+        let source = mockCloneSource(suffix: "--remote-list").path
         let directory = mockDirectory()
         let repository = try await Repository.clone(from: source, to: directory)
 
@@ -441,7 +441,7 @@ final class BranchCollectionErrorTests: SwiftGitXTest {
 
     @Test("Create branch from remote branch fails")
     func branchCreateFromRemote() async throws {
-        let source = URL(string: "https://github.com/ibrahimcetin/SwiftGitX.git")!
+        let source = mockCloneSource(suffix: "--remote-error").path
         let directory = mockDirectory()
         let repository = try await Repository.clone(from: source, to: directory)
 

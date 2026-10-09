@@ -7,7 +7,7 @@ final class RepositoryCloneTests: SwiftGitXTest {
     @Test("Repository clone")
     func repositoryClone() async throws {
         // Create a temporary URL for the source repository
-        let source = URL(string: "https://github.com/ibrahimcetin/SwiftGitX.git")!
+        let source = mockCloneSource(suffix: "--basic").path
 
         // Create a temporary directory for the destination repository
         let directory = mockDirectory()
@@ -24,40 +24,40 @@ final class RepositoryCloneTests: SwiftGitXTest {
 
     @Test("Repository clone cancellation")
     func repositoryCloneCancellation() async throws {
-        // Create a temporary URL for the source repository
-        let source = URL(string: "https://github.com/ibrahimcetin/SwiftGitX.git")!
+        #if os(macOS)
+        let sourceRepository = mockCloneSource(suffix: "--cancel")
 
         // Create a temporary directory for the destination repository
         let directory = mockDirectory()
 
-        // Perform the clone operation
-        let task = Task {
-            try await Repository.clone(from: source, to: directory)
+        try await withGitDaemon(for: sourceRepository) { source in
+            var startContinuation: AsyncStream<Void>.Continuation!
+            let startSignal = AsyncStream<Void> { startContinuation = $0 }
+            let task = Task {
+                for await _ in startSignal { break }
+                _ = try await Repository.clone(from: source, to: directory)
+            }
+
+            task.cancel()
+            startContinuation.yield(())
+            startContinuation.finish()
+
+            let result = await task.result
+            #expect(task.isCancelled)
+            guard case .failure = result else {
+                Issue.record("The task should be cancelled.")
+                return
+            }
+
+            #expect(FileManager.default.fileExists(atPath: directory.path) == false)
         }
-
-        // Cancel the task
-        task.cancel()
-
-        // Wait for the task to complete
-        let result = await task.result
-
-        // Check if the task is cancelled
-        #expect(task.isCancelled)
-
-        // Check if the task result is a failure
-        guard case .failure = result else {
-            Issue.record("The task should be cancelled.")
-            return
-        }
-
-        // Check if the destination repository exists
-        #expect(FileManager.default.fileExists(atPath: directory.path) == false)
+        #endif
     }
 
     @Test("Repository clone with progress")
     func repositoryCloneWithProgress() async throws {
         // Create source URL for the repository
-        let source = URL(string: "https://github.com/ibrahimcetin/SwiftGitX.git")!
+        let source = mockCloneSource(suffix: "--progress").path
 
         // Create a temporary directory for the destination repository
         let directory = mockDirectory()
@@ -85,37 +85,33 @@ final class RepositoryCloneTests: SwiftGitXTest {
 
     @Test("Repository clone with progress cancellation")
     func repositoryCloneWithProgressCancellation() async throws {
-        // Create source URL for the repository
-        let source = URL(string: "https://github.com/ibrahimcetin/SwiftGitX.git")!
+        #if os(macOS)
+        let sourceRepository = mockCloneSource(suffix: "--progress-cancel")
 
         // Create a temporary directory for the destination repository
         let directory = mockDirectory()
 
-        // Create a task for the clone operation
-        let task = Task {
-            let repository = try await Repository.clone(from: source, to: directory) { progress in
-                print(progress)
+        try await withGitDaemon(for: sourceRepository) { source in
+            var startContinuation: AsyncStream<Void>.Continuation!
+            let startSignal = AsyncStream<Void> { startContinuation = $0 }
+            let task = Task {
+                for await _ in startSignal { break }
+                _ = try await Repository.clone(from: source, to: directory) { _ in }
             }
 
-            return repository
+            task.cancel()
+            startContinuation.yield(())
+            startContinuation.finish()
+
+            let result = await task.result
+            #expect(task.isCancelled)
+            guard case .failure = result else {
+                Issue.record("The task should be cancelled.")
+                return
+            }
+
+            #expect(FileManager.default.fileExists(atPath: directory.path) == false)
         }
-
-        // Cancel the task
-        task.cancel()
-
-        // Wait for the task to complete (shouldn't wait because cancelled)
-        let result = await task.result
-
-        // Check if the task is cancelled
-        #expect(task.isCancelled)
-
-        // Check if the task result is a failure
-        guard case .failure = result else {
-            Issue.record("The task should be cancelled.")
-            return
-        }
-
-        // Check if the destination repository exists
-        #expect(FileManager.default.fileExists(atPath: directory.path) == false)
+        #endif
     }
 }

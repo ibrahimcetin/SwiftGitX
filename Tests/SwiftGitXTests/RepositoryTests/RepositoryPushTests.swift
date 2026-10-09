@@ -6,14 +6,15 @@ import Testing
 final class RepositoryPushTests: SwiftGitXTest {
     @Test("Push to remote repository")
     func pushToRemote() async throws {
-        // Create a mock repository at the temporary directory
-        let source = URL(string: "https://github.com/ibrahimcetin/SwiftGitX.git")!
-        let remoteDirectory = mockDirectory(suffix: "--remote")
-        let remoteRepository = try await Repository.clone(from: source, to: remoteDirectory, options: .bare)
+        let remoteRepository = mockRepository(suffix: "--remote", isBare: true)
+        let seedRepository = mockRepository(suffix: "--seed")
+        try seedRepository.remote.add(named: "origin", at: remoteRepository.path)
+        try seedRepository.mockCommit(message: "Initial commit")
+        try await seedRepository.push()
 
         // Clone the remote repository to the local repository
         let localDirectory = mockDirectory(suffix: "--local")
-        let localRepository = try await Repository.clone(from: remoteDirectory, to: localDirectory)
+        let localRepository = try await Repository.clone(from: remoteRepository.path, to: localDirectory)
 
         // Create a new commit in the local repository
         try localRepository.mockCommit(message: "Pushed commit", file: localRepository.mockFile(name: "PushedFile.md"))

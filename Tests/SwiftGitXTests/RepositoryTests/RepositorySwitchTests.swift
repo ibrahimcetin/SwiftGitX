@@ -26,7 +26,7 @@ final class RepositorySwitchTests: SwiftGitXTest {
 
     @Test("Switch to Remote Branch (Tracking Branch Created)")
     func switchBranchRemote() async throws {
-        let source = URL(string: "https://github.com/ibrahimcetin/PassbankMD.git")!
+        let source = mockCloneSource(suffix: "--remote-switch").path
         let repositoryDirectory = mockDirectory()
         let repository = try await Repository.clone(from: source, to: repositoryDirectory)
 

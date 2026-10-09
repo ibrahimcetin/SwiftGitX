@@ -1,6 +1,10 @@
 import Foundation
-import SwiftGitX
+@testable import SwiftGitX
+import libgit2
 import Testing
+#if os(macOS)
+import Darwin
+#endif
 
 /// Base class for SwiftGitX tests to initialize and shutdown the library
 ///
@@ -27,9 +31,122 @@ class SwiftGitXTest {
         // Create a new mock directory
         let directory = mockDirectory(fileID: fileID, name: name, suffix: suffix)
 
-        // Create the repository
-        return try! Repository.create(at: directory, isBare: isBare)
+        // Initialize fixtures with an explicit default branch instead of relying on a
+        // developer's global Git configuration or libgit2's platform default.
+        try! FileManager.default.createDirectory(at: directory, withIntermediateDirectories: true)
+        try! SwiftGitXRuntime.initialize()
+
+        var options = git_repository_init_options()
+        precondition(git_repository_init_options_init(&options, UInt32(GIT_REPOSITORY_INIT_OPTIONS_VERSION)) == 0)
+        options.flags = UInt32(GIT_REPOSITORY_INIT_MKPATH.rawValue)
+        if isBare {
+            options.flags |= UInt32(GIT_REPOSITORY_INIT_BARE.rawValue)
+        }
+
+        var repositoryPointer: OpaquePointer?
+        let status = "main".withCString { initialHead in
+            options.initial_head = initialHead
+            return git_repository_init_ext(&repositoryPointer, directory.path, &options)
+        }
+        guard status == 0, let repositoryPointer else {
+            _ = try? SwiftGitXRuntime.shutdown()
+            preconditionFailure("Failed to initialize test repository: \(status)")
+        }
+
+        return Repository(pointer: repositoryPointer)
     }
+
+    /// Creates a local repository fixture that can be cloned without network access.
+    func mockCloneSource(
+        suffix: String = "",
+        additionalBranches: [String] = []
+    ) -> Repository {
+        let repository = mockRepository(suffix: "--clone-source\(suffix)")
+        let commit = try! repository.mockCommit(message: "Clone fixture")
+        for name in additionalBranches {
+            try! repository.branch.create(named: name, target: commit)
+        }
+        return repository
+    }
+
+    #if os(macOS)
+    /// Runs a test operation against a temporary localhost Git daemon.
+    func withGitDaemon<T>(
+        for remote: Repository,
+        perform: (URL) async throws -> T
+    ) async throws -> T {
+        let port = try unusedTCPPort()
+        let daemon = Process()
+        daemon.executableURL = URL(fileURLWithPath: "/usr/bin/git")
+        daemon.arguments = [
+            "daemon", "--reuseaddr", "--export-all", "--listen=127.0.0.1",
+            "--port=\(port)", "--base-path=\(remote.path.deletingLastPathComponent().path)",
+        ]
+        daemon.standardOutput = FileHandle.nullDevice
+        daemon.standardError = FileHandle.nullDevice
+        try daemon.run()
+        defer {
+            if daemon.isRunning {
+                daemon.terminate()
+                daemon.waitUntilExit()
+            }
+        }
+
+        try waitForGitDaemon(port: port, process: daemon)
+        let remoteURL = URL(string: "git://127.0.0.1:\(port)/\(remote.path.lastPathComponent)")!
+        return try await perform(remoteURL)
+    }
+
+    private func unusedTCPPort() throws -> UInt16 {
+        let descriptor = socket(AF_INET, SOCK_STREAM, 0)
+        guard descriptor >= 0 else { throw POSIXError(.EIO) }
+        defer { close(descriptor) }
+
+        var address = sockaddr_in()
+        address.sin_len = UInt8(MemoryLayout<sockaddr_in>.size)
+        address.sin_family = sa_family_t(AF_INET)
+        address.sin_port = 0
+        address.sin_addr = in_addr(s_addr: in_addr_t(INADDR_LOOPBACK).bigEndian)
+        var length = socklen_t(MemoryLayout<sockaddr_in>.size)
+        let bindStatus = withUnsafePointer(to: &address) {
+            $0.withMemoryRebound(to: sockaddr.self, capacity: 1) {
+                bind(descriptor, $0, length)
+            }
+        }
+        guard bindStatus == 0 else { throw POSIXError(.EIO) }
+
+        let nameStatus = withUnsafeMutablePointer(to: &address) {
+            $0.withMemoryRebound(to: sockaddr.self, capacity: 1) {
+                getsockname(descriptor, $0, &length)
+            }
+        }
+        guard nameStatus == 0 else { throw POSIXError(.EIO) }
+        return UInt16(bigEndian: address.sin_port)
+    }
+
+    private func waitForGitDaemon(port: UInt16, process: Process) throws {
+        for _ in 0..<200 {
+            guard process.isRunning else { throw POSIXError(.ECONNREFUSED) }
+            let descriptor = socket(AF_INET, SOCK_STREAM, 0)
+            guard descriptor >= 0 else { throw POSIXError(.EIO) }
+
+            var address = sockaddr_in()
+            address.sin_len = UInt8(MemoryLayout<sockaddr_in>.size)
+            address.sin_family = sa_family_t(AF_INET)
+            address.sin_port = port.bigEndian
+            address.sin_addr = in_addr(s_addr: in_addr_t(INADDR_LOOPBACK).bigEndian)
+            let status = withUnsafePointer(to: &address) {
+                $0.withMemoryRebound(to: sockaddr.self, capacity: 1) {
+                    connect(descriptor, $0, socklen_t(MemoryLayout<sockaddr_in>.size))
+                }
+            }
+            close(descriptor)
+            if status == 0 { return }
+            Thread.sleep(forTimeInterval: 0.01)
+        }
+        throw POSIXError(.ETIMEDOUT)
+    }
+    #endif
 
     /// Creates a new mock directory with auto-generated unique name based on the calling test.
     ///

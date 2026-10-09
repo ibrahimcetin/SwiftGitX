@@ -7,10 +7,7 @@ final class RepositoryFetchTests: SwiftGitXTest {
     @Test("Fetch from remote repository")
     func fetchFromRemote() async throws {
         // Create remote repository
-        let remoteRepository = mockRepository(suffix: "--remote")
-
-        // Create mock commit in the remote repository
-        try remoteRepository.mockCommit()
+        let remoteRepository = mockCloneSource(suffix: "--fetch")
 
         // Create local repository
         let localRepository = mockRepository(suffix: "--local")

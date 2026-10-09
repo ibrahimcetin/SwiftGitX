@@ -9,7 +9,7 @@ final class RemoteCollectionTests: SwiftGitXTest {
         let repository = mockRepository()
 
         // Add a remote to the repository
-        let url = URL(string: "https://github.com/username/repo.git")!
+        let url = URL(fileURLWithPath: "/tmp/username/repo.git")
         let remote = try repository.remote.add(named: "origin", at: url)
 
         // Get the remote from the repository
@@ -26,7 +26,7 @@ final class RemoteCollectionTests: SwiftGitXTest {
         let repository = mockRepository()
 
         // Add a new remote to the repository
-        let url = URL(string: "https://github.com/ibrahimcetin/SwiftGitX.git")!
+        let url = URL(fileURLWithPath: "/tmp/SwiftGitX.git")
         let remote = try repository.remote.add(named: "origin", at: url)
 
         // Get the remote from the repository
@@ -75,7 +75,7 @@ final class RemoteCollectionTests: SwiftGitXTest {
         // Add a remote to the repository
         let remote = try repository.remote.add(
             named: "origin",
-            at: URL(string: "https://github.com/ibrahimcetin/SwiftGitX.git")!
+            at: URL(fileURLWithPath: "/tmp/SwiftGitX.git")
         )
 
         // Remove the remote from the repository
@@ -98,7 +98,7 @@ final class RemoteCollectionTests: SwiftGitXTest {
         // Add remotes to the repository
         let remoteNames = ["origin", "upstream", "features", "my-remote", "remote"]
         let remotes = try remoteNames.map { name in
-            try repository.remote.add(named: name, at: URL(string: "https://example.com/\(name).git")!)
+            try repository.remote.add(named: name, at: URL(fileURLWithPath: "/tmp/\(name).git"))
         }
 
         // List the remotes in the repository
@@ -124,7 +124,7 @@ final class RemoteCollectionTests: SwiftGitXTest {
         // Add remotes to the repository
         let remoteNames = ["origin", "upstream", "features", "my-remote", "remote"]
         let remotes = try remoteNames.map { name in
-            try repository.remote.add(named: name, at: URL(string: "https://example.com/\(name).git")!)
+            try repository.remote.add(named: name, at: URL(fileURLWithPath: "/tmp/\(name).git"))
         }
 
         // List the remotes in the repository
@@ -164,7 +164,7 @@ final class RemoteCollectionTests: SwiftGitXTest {
         // Add a remote to the repository
         let remote = try repository.remote.add(
             named: "origin",
-            at: URL(string: "https://github.com/ibrahimcetin/SwiftGitX.git")!
+            at: URL(fileURLWithPath: "/tmp/SwiftGitX.git")
         )
 
         // Add the same remote again (should throw)
@@ -184,7 +184,7 @@ final class RemoteCollectionTests: SwiftGitXTest {
         // Add a remote to the repository
         let remote = try repository.remote.add(
             named: "origin",
-            at: URL(string: "https://github.com/ibrahimcetin/SwiftGitX.git")!
+            at: URL(fileURLWithPath: "/tmp/SwiftGitX.git")
         )
 
         // Remove the remote from the repository
@@ -205,7 +205,7 @@ final class RemoteCollectionTests: SwiftGitXTest {
         let repository = mockRepository()
 
         // Add a remote to the repository
-        let url = URL(string: "https://github.com/username/repo.git")!
+        let url = URL(fileURLWithPath: "/tmp/username/repo.git")
         let remote = try repository.remote.add(named: "origin", at: url)
 
         // Get the remote using subscript
